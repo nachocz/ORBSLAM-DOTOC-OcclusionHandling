@@ -1,0 +1,61 @@
+%YAML:1.0
+
+# Camera calibration and distortion parameters (OpenCV)
+Camera.fx: 617.819580078125
+Camera.fy: 617.8582763671875
+Camera.cx: 327.3727722167969
+Camera.cy: 241.2329559326172
+
+# Camera distortion parameters (OpenCV)
+Camera.k1: 0.0
+Camera.k2: 0.0
+Camera.p1: 0.0
+Camera.p2: 0.0
+Camera.k3: 0.0
+
+Camera.width: 640
+Camera.height: 480
+
+# IR projector baseline times fx (aprox.)
+Camera.bf: 1000.0
+
+# Camera frames per second
+Camera.fps: 30.0
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+# Close/Far threshold. Baseline times.
+ThDepth: 40.0
+
+# Deptmap values factor (what pixel value in the depth image corresponds to 1m?)
+DepthMapFactor: 1000.0
+
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+#--------------------------------------------------------------------------------------------
+
+# ORB Extractor: Number of features per image
+ORBextractor.nFeatures: 1000
+
+# ORB Extractor: Scale factor between levels in the scale pyramid
+ORBextractor.scaleFactor: 1.2 #1.2
+
+# ORB Extractor: Number of levels in the scale pyramid
+ORBextractor.nLevels: 8 #8
+
+# ORB Extractor: Fast threshold
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast
+ORBextractor.iniThFAST: 24 #20
+ORBextractor.minThFAST: 12
+
+#DOT close/far admitted range of work thresholds [m]
+
+CloseThreshold: 0.1
+FarThreshold: 0.8
+
+#DOT resolution lowering (TODO: reduce resolution uniformly on 3D space, not on the depthmap 2D image...)
+#factor which by the resolution is reduced:
+ResolutionReduction: 6

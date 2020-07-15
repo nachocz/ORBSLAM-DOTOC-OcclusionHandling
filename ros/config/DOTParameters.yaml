@@ -1,0 +1,50 @@
+%YAML:1.0
+
+# Camera calibration and distortion parameters (OpenCV)
+Camera.fx: 617.819580078125
+Camera.fy: 617.8582763671875
+Camera.cx: 327.3727722167969
+Camera.cy: 241.2329559326172
+
+# Camera distortion parameters (OpenCV)
+Camera.k1: 0.0
+Camera.k2: 0.0
+Camera.p1: 0.0
+Camera.p2: 0.0
+Camera.k3: 0.0
+
+Camera.width: 640
+Camera.height: 480
+
+#VCCS segmentation parameters
+
+VoxelResolution: 0.01 #Rvoxel 0.01 should do for most scenarios
+SeedResolution: 0.02 #Rseed 0.03 should do for most scenarios
+
+ColorImportance: 1.0
+SpatialImportance: 0.4
+NormalImportance: 1.0
+
+#LCCP segmentation parameters
+
+ConcavityToleranceThreshold: 10.0
+SmoothnessThreshold: 0.1
+MinSegmentSize: 3
+
+#Object tracking parameters
+
+NeighbouringFactor: 1.1 #scalator of Rseed in order to consider an adjacent SV centroid as neighbour (1...1.5)
+ExplorationFactor: 1.9 #scalator of Rseed in order to define the object's exploration zone (1...2) ExplorationFactor >=NeighbouringFactor
+
+SegmentHistorySize: 5 #number of time-buffer of past states of the object
+ColorThreshold: 12 #Weighted CIELAB distance threshold
+NormalThreshold: 0.15 #Weighted and normalizded (over pi) angle threshold (rad)
+
+#Visualization parameters 
+
+VisualizeColorDenseCloud: 0
+VisualizeLCCPSegments: 1
+VisualizeLCCPConnections: 0
+VisualizeSupervoxels: 1
+VisualizeNormals: 0
+VisualizeGraphs: 0
