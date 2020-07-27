@@ -1,6 +1,5 @@
 #include "IncludesAndDefinitions.h"
 
-
 #include <iostream>
 #include <algorithm>
 #include <fstream>
@@ -37,6 +36,8 @@ namespace DEF_OBJ_TRACK
 
         bool isItInsideAugmentedOBB(const pcl::PointXYZRGBA &SVcentroid_on_objects_ref);
 
+        //bool isItInCameraToObjectFrustum(pcl::PointXYZRGBA sv_centroid);
+
         //Best next view calculations
         void computeAverageNormal();
         void computeDesiredPositionVector();
@@ -61,11 +62,11 @@ namespace DEF_OBJ_TRACK
 
         void computeLargestDistanceToCamera(pcl::PointCloud<pcl::PointNormal>::Ptr visualization_normal_cloud);
         bool isItInOcclusionsDepthRange(pcl::PointXYZRGBA sv_centroid);
-        bool isItInCameraToObjectfrustum(pcl::PointXYZRGBA sv_centroid);
+        bool isItInCameraToObjectFrustum(pcl::PointXYZRGBA sv_centroid);
         void visualizeObjectsReprojectionOnCamera(std::shared_ptr<DEF_OBJ_TRACK::Segment> occlusions, std::shared_ptr<DEF_OBJ_TRACK::Segment> hardOcclusions);
 
         //General visualization
-        void OcclusionOptimizationVisualChecking(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject,Eigen::Affine3f t_objetivo,pcl::visualization::PCLVisualizer::Ptr viewer);
+        void OcclusionOptimizationVisualChecking(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, Eigen::Affine3f t_objetivo, pcl::visualization::PCLVisualizer::Ptr viewer);
         void VisualizeCloudsAndBoundingBoxes(pcl::visualization::PCLVisualizer::Ptr viewer);
 
     public:

@@ -74,7 +74,7 @@ public:
   void trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObject, pcl::SupervoxelClustering<PointTSuperVoxel> &supervoxel_cluster,
                    const std::map<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr> &supervoxel_cluster_map);
 
-  void computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions);
+  void computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions, std::shared_ptr<DEF_OBJ_TRACK::Segment> HardOcclusions);
   void computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject);
 
   pcl::PointXYZRGBA

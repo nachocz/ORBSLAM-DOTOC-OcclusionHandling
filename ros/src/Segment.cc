@@ -335,7 +335,7 @@ namespace DEF_OBJ_TRACK
 
         camera_to_object_frustum_.emplace(5, OBBcenter);
     }
-    bool Segment::isItInCameraToObjectfrustum(pcl::PointXYZRGBA sv_centroid)
+    bool Segment::isItInCameraToObjectFrustum(pcl::PointXYZRGBA sv_centroid)
     {
         bool it_is_in_frustum = false;
 
@@ -572,7 +572,7 @@ namespace DEF_OBJ_TRACK
 
                 if (!adjacent_supervoxel_centers.empty())
                 {
-                    //addSupervoxelConnectionsToViewer2(temp_cloud->points[j], adjacent_supervoxel_centers, ss.str(), viewer);
+                    addSupervoxelConnectionsToViewer2(temp_cloud->points[j], adjacent_supervoxel_centers, ss.str(), viewer);
                 }
                 if (segmentType_ == INTERACTING_ELEMENT)
                 {
@@ -580,18 +580,18 @@ namespace DEF_OBJ_TRACK
                     ssCube << "interaction_" << j << "_";
                     //viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 0.0, 1.0, 0.0, ssCube.str());
                 }
-                // else if (segmentType_ == OCCLUDING_ELEMENT)
-                // {
-                //     std::stringstream ssCube;
-                //     ssCube << "occlusion_" << j << "_";
-                //     //viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 1.0, 1.0, 0.0, ssCube.str());
-                // }
-                // else if (segmentType_ == HARD_OCCLUDING_ELEMENT)
-                // {
-                //     std::stringstream ssCube;
-                //     ssCube << "hard_occlusion_" << j << "_";
-                //     //viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 1.0, 0.0, 0.0, ssCube.str());
-                // }
+                else if (segmentType_ == OCCLUDING_ELEMENT)
+                {
+                    std::stringstream ssCube;
+                    ssCube << "occlusion_" << j << "_";
+                    viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 1.0, 1.0, 0.0, ssCube.str());
+                }
+                else if (segmentType_ == HARD_OCCLUDING_ELEMENT)
+                {
+                    std::stringstream ssCube;
+                    ssCube << "hard_occlusion_" << j << "_";
+                    viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 1.0, 0.0, 0.0, ssCube.str());
+                }
             }
         }
         max_graph_degree_ = maxGraphDegree;

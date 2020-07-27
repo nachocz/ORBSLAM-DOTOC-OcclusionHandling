@@ -352,9 +352,9 @@ void RGBDNode::ImageCallback(const sensor_msgs::ImageConstPtr &msgRGB, const sen
 
       auto start_Optimization_time = std::chrono::system_clock::now();
 
-      //computeOptimalCameraLocation(segment_manager.segment_list_now_[1], segment_manager.segment_list_now_[3]);
+      computeOptimalCameraLocation(segment_manager.segment_list_now_[1], segment_manager.segment_list_now_[3], segment_manager.segment_list_now_[4]);
 
-      computeOptimalCameraLocationNoOcclusions(segment_manager.segment_list_now_[1]);
+      //computeOptimalCameraLocationNoOcclusions(segment_manager.segment_list_now_[1]);
 
       auto end_Optimization_time = std::chrono::system_clock::now();
       auto elapsed_Optimization_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_Optimization_time - start_Optimization_time);
@@ -824,11 +824,14 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
   std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject = std::make_shared<DEF_OBJ_TRACK::Segment>(selected_cloud_with_labeled_sv, neighbouringRadius, explorationRadius, DEF_OBJ_TRACK::Segment::SegmentType::TARGET_OBJECT);
   NewObject->segments_voxel_labeled_cloud_ = supervoxel_cluster.getLabeledCloud();
 
-  // pcl::PointCloud<PointTSuperVoxel>::Ptr interactor_cloud_with_labeled_sv(new pcl::PointCloud<PointTSuperVoxel>);
-  // std::shared_ptr<DEF_OBJ_TRACK::Segment> Interactor = std::make_shared<DEF_OBJ_TRACK::Segment>(interactor_cloud_with_labeled_sv, neighbouringRadius, explorationRadius, DEF_OBJ_TRACK::Segment::SegmentType::INTERACTING_ELEMENT);
+  pcl::PointCloud<PointTSuperVoxel>::Ptr interactor_cloud_with_labeled_sv(new pcl::PointCloud<PointTSuperVoxel>);
+  std::shared_ptr<DEF_OBJ_TRACK::Segment> Interactor = std::make_shared<DEF_OBJ_TRACK::Segment>(interactor_cloud_with_labeled_sv, neighbouringRadius, explorationRadius, DEF_OBJ_TRACK::Segment::SegmentType::INTERACTING_ELEMENT);
 
-  // pcl::PointCloud<PointTSuperVoxel>::Ptr occlusions_cloud_with_labeled_sv(new pcl::PointCloud<PointTSuperVoxel>);
-  // std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions = std::make_shared<DEF_OBJ_TRACK::Segment>(occlusions_cloud_with_labeled_sv, neighbouringRadius, explorationRadius, DEF_OBJ_TRACK::Segment::SegmentType::OCCLUDING_ELEMENT);
+  pcl::PointCloud<PointTSuperVoxel>::Ptr occlusions_cloud_with_labeled_sv(new pcl::PointCloud<PointTSuperVoxel>);
+  std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions = std::make_shared<DEF_OBJ_TRACK::Segment>(occlusions_cloud_with_labeled_sv, neighbouringRadius, explorationRadius, DEF_OBJ_TRACK::Segment::SegmentType::OCCLUDING_ELEMENT);
+
+  pcl::PointCloud<PointTSuperVoxel>::Ptr hard_occlusions_cloud_with_labeled_sv(new pcl::PointCloud<PointTSuperVoxel>);
+  std::shared_ptr<DEF_OBJ_TRACK::Segment> HardOcclusions = std::make_shared<DEF_OBJ_TRACK::Segment>(hard_occlusions_cloud_with_labeled_sv, neighbouringRadius, explorationRadius, DEF_OBJ_TRACK::Segment::SegmentType::HARD_OCCLUDING_ELEMENT);
 
   //ANALYSIS OF NEW INCOMING SUPERVOXELS
   std::multimap<uint32_t, uint32_t> supervoxel_adjacency;
@@ -895,37 +898,50 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
 
           not_belonging_yet = false;
         }
-        // else if (i == segment_manager.segment_manager_history_size_)
-        // {
+        else if (i == segment_manager.segment_manager_history_size_)
+        {
 
-        //   Interactor->label_of_sv_++;
-        //   Interactor->segments_sv_map_.insert(std::pair<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr>(Interactor->label_of_sv_, supervoxel));
-        //   Interactor->segments_colors_RGB_.insert(std::pair<uint32_t, pcl::PointXYZRGBA>(Interactor->label_of_sv_, SVcolorRGB));
-        //   Interactor->segments_normals_.insert(std::pair<uint32_t, pcl::PointNormal>(Interactor->label_of_sv_, newNormal));
-        //   //pcl::PointCloud<PointTSuperVoxel>::Ptr voxelsPointcloud = supervoxel->voxels_;
-        //   *Interactor->selected_cloud_with_labeled_sv_ += *supervoxel->voxels_;
+          Interactor->label_of_sv_++;
+          Interactor->segments_sv_map_.insert(std::pair<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr>(Interactor->label_of_sv_, supervoxel));
+          Interactor->segments_colors_RGB_.insert(std::pair<uint32_t, pcl::PointXYZRGBA>(Interactor->label_of_sv_, SVcolorRGB));
+          Interactor->segments_normals_.insert(std::pair<uint32_t, pcl::PointNormal>(Interactor->label_of_sv_, newNormal));
+          //pcl::PointCloud<PointTSuperVoxel>::Ptr voxelsPointcloud = supervoxel->voxels_;
+          *Interactor->selected_cloud_with_labeled_sv_ += *supervoxel->voxels_;
 
-        //   //TODO: visualize weights aswell
-        //   // std::stringstream ssText, slam_time;
-        //   // slam_time << "Ws: " << std::setprecision(3) << centroidDistanceTotalWeighted;
-        //   // ssText << "text_" << SVid << "_" << ComparisonObjectID;
-        //   // viewer->addText3D(slam_time.str(), sv_centroidRadiusSearch, 0.004, 1, 1, 1, ssText.str());
-        // }
+          //TODO: visualize weights aswell
+          // std::stringstream ssText, slam_time;
+          // slam_time << "Ws: " << std::setprecision(3) << centroidDistanceTotalWeighted;
+          // ssText << "text_" << SVid << "_" << ComparisonObjectID;
+          // viewer->addText3D(slam_time.str(), sv_centroidRadiusSearch, 0.004, 1, 1, 1, ssText.str());
+        }
       }
     }
-    // else if (!(previousObject->camera_position_.empty()))
-    // {
-    //   if (previousObject->isItInOcclusionsDepthRange(SVcentroid))
-    //   {
+    else if (!(previousObject->camera_position_.empty()))
+    {
+      if (previousObject->isItInOcclusionsDepthRange(SVcentroid))
+      {
+        if (previousObject->isItInCameraToObjectFrustum(SVcentroid))
+        {
+          cout << "it is!! it iss :D" << endl;
+          HardOcclusions->label_of_sv_++;
+          HardOcclusions->segments_sv_map_.insert(std::pair<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr>(HardOcclusions->label_of_sv_, supervoxel));
+          HardOcclusions->segments_colors_RGB_.insert(std::pair<uint32_t, pcl::PointXYZRGBA>(HardOcclusions->label_of_sv_, SVcolorRGB));
+          HardOcclusions->segments_normals_.insert(std::pair<uint32_t, pcl::PointNormal>(HardOcclusions->label_of_sv_, newNormal));
+          //pcl::PointCloud<PointTSuperVoxel>::Ptr voxelsPointcloud = supervoxel->voxels_;
+          *HardOcclusions->selected_cloud_with_labeled_sv_ += *supervoxel->voxels_;
+        }
+        else
+        {
 
-    //     Occlusions->label_of_sv_++;
-    //     Occlusions->segments_sv_map_.insert(std::pair<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr>(Occlusions->label_of_sv_, supervoxel));
-    //     Occlusions->segments_colors_RGB_.insert(std::pair<uint32_t, pcl::PointXYZRGBA>(Occlusions->label_of_sv_, SVcolorRGB));
-    //     Occlusions->segments_normals_.insert(std::pair<uint32_t, pcl::PointNormal>(Occlusions->label_of_sv_, newNormal));
-    //     //pcl::PointCloud<PointTSuperVoxel>::Ptr voxelsPointcloud = supervoxel->voxels_;
-    //     *Occlusions->selected_cloud_with_labeled_sv_ += *supervoxel->voxels_;
-    //   }
-    // }
+          Occlusions->label_of_sv_++;
+          Occlusions->segments_sv_map_.insert(std::pair<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr>(Occlusions->label_of_sv_, supervoxel));
+          Occlusions->segments_colors_RGB_.insert(std::pair<uint32_t, pcl::PointXYZRGBA>(Occlusions->label_of_sv_, SVcolorRGB));
+          Occlusions->segments_normals_.insert(std::pair<uint32_t, pcl::PointNormal>(Occlusions->label_of_sv_, newNormal));
+          //pcl::PointCloud<PointTSuperVoxel>::Ptr voxelsPointcloud = supervoxel->voxels_;
+          *Occlusions->selected_cloud_with_labeled_sv_ += *supervoxel->voxels_;
+        }
+      }
+    }
 
     label_itr = supervoxel_adjacency.upper_bound(supervoxel_label);
   }
@@ -950,24 +966,28 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
   }
   //TODO... but much later in the future: automatise all of this for several objects, several interactors etc
   segment_manager.segment_list_now_.emplace(1, NewObject);
-  // segment_manager.segment_list_now_.emplace(2, Interactor);
-  // segment_manager.segment_list_now_.emplace(3, Occlusions);
+  segment_manager.segment_list_now_.emplace(2, Interactor);
+  segment_manager.segment_list_now_.emplace(3, Occlusions);
+  segment_manager.segment_list_now_.emplace(4, HardOcclusions);
 
   NewObject->computeFeatureExtraction();
   NewObject->computeOctreeAdjacencyAndDegree(viewer);
 
-  // Interactor->computeFeatureExtraction();
-  // Interactor->computeOctreeAdjacencyAndDegree(viewer);
+  Interactor->computeFeatureExtraction();
+  Interactor->computeOctreeAdjacencyAndDegree(viewer);
 
-  // Occlusions->computeFeatureExtraction();
-  // Occlusions->computeOctreeAdjacencyAndDegree(viewer);
+  Occlusions->computeFeatureExtraction();
+  Occlusions->computeOctreeAdjacencyAndDegree(viewer);
+
+  HardOcclusions->computeFeatureExtraction();
+  HardOcclusions->computeOctreeAdjacencyAndDegree(viewer);
 
   NewObject->VisualizeCloudsAndBoundingBoxes(viewer);
 
   return;
 }
 
-void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions)
+void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions, std::shared_ptr<DEF_OBJ_TRACK::Segment> HardOcclusions)
 {
   //BestNextView
   cv::Mat camera_position = orb_slam_->GetCurrentPosition();
@@ -978,96 +998,97 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     NewObject->camera_position_ = camera_position;
     NewObject->camera_intrinsics_ = camera_intrinsics;
     NewObject->computeInverseOfCameraPositionAndExtendedIntrinsics();
-    //NewObject->computeCameraZaxisOnWorldReference();
+    NewObject->computeCameraZaxisOnWorldReference();
 
-    //NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_normals_cloud_);
-    //NewObject->computeInterestfrustum(NewObject->visualization_of_normals_cloud_);
+    NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_normals_cloud_);
+    NewObject->computeInterestfrustum(NewObject->visualization_of_normals_cloud_);
 
-    //NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, hardOcclusions);
+    NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, HardOcclusions);
 
-    // NewObject->computeAverageNormal();
-    // NewObject->computeDesiredPositionVector();
-    //NewObject->computeAngularError();
-    //NewObject->computePositionError();
+    NewObject->computeAverageNormal();
+    NewObject->computeDesiredPositionVector();
+    NewObject->computeAngularError();
+    NewObject->computePositionError();
 
-    DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
-    double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
-                                                                  NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-                                                                  NewObject->camera_to_object_frustum_,
-                                                                  Occlusions->segments_normals_, Occlusions->number_of_sv_in_segment_,
-                                                                  NewObject->visualization_of_normals_cloud_,
-                                                                  viewer,
-                                                                  myfile);
-    // double *parameters = OptimizationProblem->computeBestNextViewSimple(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
-    //                                                                          NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-    //                                                                          NewObject->visualization_of_normals_cloud_);
-    Eigen::Affine3f t_objetivo;
-    for (int iAffine = 0; iAffine < 3; iAffine++)
-    {
-      for (int jAffine = 0; jAffine < 4; jAffine++)
-      {
-        t_objetivo(iAffine, jAffine) = static_cast<float>(parameters[4 * iAffine + jAffine]);
-      }
-    }
-    Eigen::Matrix<float, 3, 1> position_vector;
-    position_vector << t_objetivo(0, 3),
-        t_objetivo(1, 3),
-        t_objetivo(2, 3);
+    // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
+    // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
+    //                                                               NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
+    //                                                               NewObject->camera_to_object_frustum_,
+    //                                                               Occlusions->segments_normals_, Occlusions->number_of_sv_in_segment_,
+    //                                                               NewObject->visualization_of_normals_cloud_,
+    //                                                               viewer,
+    //                                                               myfile);
+    // // double *parameters = OptimizationProblem->computeBestNextViewSimple(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
+    // //                                                                          NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
+    // //                                                                           NewObject->visualization_of_normals_cloud_);
+    // Eigen::Affine3f t_objetivo;
+    // for (int iAffine = 0; iAffine < 3; iAffine++)
+    // {
+    //   for (int jAffine = 0; jAffine < 4; jAffine++)
+    //   {
+    //     t_objetivo(iAffine, jAffine) = static_cast<float>(parameters[4 * iAffine + jAffine]);
+    //   }
+    // }
 
-    Eigen::Matrix<float, 3, 1> normal_vector_unitary;
-    normal_vector_unitary << static_cast<float>(parameters[2]),
-        t_objetivo(1, 2),
-        t_objetivo(2, 2);
+    // Eigen::Matrix<float, 3, 1> position_vector;
+    // position_vector << t_objetivo(0, 3),
+    //     t_objetivo(1, 3),
+    //     t_objetivo(2, 3);
 
-    normal_vector_unitary = normal_vector_unitary.normalized();
+    // Eigen::Matrix<float, 3, 1> normal_vector_unitary;
+    // normal_vector_unitary << static_cast<float>(parameters[2]),
+    //     t_objetivo(1, 2),
+    //     t_objetivo(2, 2);
 
-    Eigen::Matrix<float, 3, 1> U_vector; //2nd basis vector
-    U_vector << float(1.0),
-        float(0.0),                                                    //(1.0)
-        float((-normal_vector_unitary(0)) / normal_vector_unitary(2)); //(-normal_vector_unitary(0) - normal_vector_unitary(1)) / normal_vector_unitary(2)
-    U_vector = U_vector.normalized();
+    // normal_vector_unitary = normal_vector_unitary.normalized();
 
-    Eigen::Matrix<float, 3, 1> V_vector; //3rd basis vector
-    V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
+    // Eigen::Matrix<float, 3, 1> U_vector; //2nd basis vector
+    // U_vector << float(1.0),
+    //     float(0.0),                                                    //(1.0)
+    //     float((-normal_vector_unitary(0)) / normal_vector_unitary(2)); //(-normal_vector_unitary(0) - normal_vector_unitary(1)) / normal_vector_unitary(2)
+    // U_vector = U_vector.normalized();
 
-    Eigen::Matrix<float, 3, 1> W_vector; //Comprobation vector, it must be = normal_vector_unitary
-    W_vector = (U_vector.cross(V_vector)).normalized();
+    // Eigen::Matrix<float, 3, 1> V_vector; //3rd basis vector
+    // V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
 
-    Eigen::Matrix<float, 3, 3> R_matrix; //Rwc (camera to world)
-    R_matrix << U_vector, V_vector, W_vector;
+    // Eigen::Matrix<float, 3, 1> W_vector; //Comprobation vector, it must be = normal_vector_unitary
+    // W_vector = (U_vector.cross(V_vector)).normalized();
 
-    Eigen::Matrix<float, 3, 4> Rt_matrix; //
-    Rt_matrix << R_matrix, position_vector;
+    // Eigen::Matrix<float, 3, 3> R_matrix; //Rwc (camera to world)
+    // R_matrix << U_vector, V_vector, W_vector;
 
-    Eigen::Affine3f t_objetivo_xy_fijos;
-    for (int iAffine = 0; iAffine < 3; iAffine++)
-    {
-      for (int jAffine = 0; jAffine < 4; jAffine++)
-      {
-        t_objetivo_xy_fijos(iAffine, jAffine) = static_cast<float>(Rt_matrix(iAffine, jAffine));
-      }
-    }
+    // Eigen::Matrix<float, 3, 4> Rt_matrix; //
+    // Rt_matrix << R_matrix, position_vector;
 
-    viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos, "ref_objetivo"); //camera visualization
-    NewObject->optimal_position_ = t_objetivo;
+    // Eigen::Affine3f t_objetivo_xy_fijos;
+    // for (int iAffine = 0; iAffine < 3; iAffine++)
+    // {
+    //   for (int jAffine = 0; jAffine < 4; jAffine++)
+    //   {
+    //     t_objetivo_xy_fijos(iAffine, jAffine) = static_cast<float>(Rt_matrix(iAffine, jAffine));
+    //   }
+    // }
 
-    delete OptimizationProblem;
-    delete parameters;
+    // viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos, "ref_objetivo"); //camera visualization
+    // NewObject->optimal_position_ = t_objetivo;
 
-    pcl::PointXYZ optimalCameraPostion;
+    // delete OptimizationProblem;
+    // delete parameters;
 
-    optimalCameraPostion.x = position_vector(0);
-    optimalCameraPostion.y = position_vector(1);
-    optimalCameraPostion.z = position_vector(2);
+    // pcl::PointXYZ optimalCameraPostion;
 
-    pcl::PointXYZ actualCameraPosition;
-    actualCameraPosition.x = NewObject->Twc_depth_.at<float>(0, 3);
-    actualCameraPosition.y = NewObject->Twc_depth_.at<float>(1, 3);
-    actualCameraPosition.z = NewObject->Twc_depth_.at<float>(2, 3);
+    // optimalCameraPostion.x = position_vector(0);
+    // optimalCameraPostion.y = position_vector(1);
+    // optimalCameraPostion.z = position_vector(2);
 
-    float cubeSize = 0.004;
-    viewer->addCube(actualCameraPosition.x - cubeSize, actualCameraPosition.x + cubeSize, actualCameraPosition.y - cubeSize, actualCameraPosition.y + cubeSize, actualCameraPosition.z - cubeSize, actualCameraPosition.z + cubeSize, 1.0, 0.0, 0.0, "camera bad");
-    viewer->addCube(optimalCameraPostion.x - cubeSize, optimalCameraPostion.x + cubeSize, optimalCameraPostion.y - cubeSize, optimalCameraPostion.y + cubeSize, optimalCameraPostion.z - cubeSize, optimalCameraPostion.z + cubeSize, 0.0, 1.0, 0.0, "camera good");
+    // pcl::PointXYZ actualCameraPosition;
+    // actualCameraPosition.x = NewObject->Twc_depth_.at<float>(0, 3);
+    // actualCameraPosition.y = NewObject->Twc_depth_.at<float>(1, 3);
+    // actualCameraPosition.z = NewObject->Twc_depth_.at<float>(2, 3);
+
+    // float cubeSize = 0.004;
+    // viewer->addCube(actualCameraPosition.x - cubeSize, actualCameraPosition.x + cubeSize, actualCameraPosition.y - cubeSize, actualCameraPosition.y + cubeSize, actualCameraPosition.z - cubeSize, actualCameraPosition.z + cubeSize, 1.0, 0.0, 0.0, "camera bad");
+    // viewer->addCube(optimalCameraPostion.x - cubeSize, optimalCameraPostion.x + cubeSize, optimalCameraPostion.y - cubeSize, optimalCameraPostion.y + cubeSize, optimalCameraPostion.z - cubeSize, optimalCameraPostion.z + cubeSize, 0.0, 1.0, 0.0, "camera good");
 
     // std::ostringstream optimal_text;
     // optimal_text << "Optimal" << endl
@@ -1087,7 +1108,6 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
   }
 }
 
-
 void RGBDNode::computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject)
 {
   //BestNextView
@@ -1104,7 +1124,7 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_
     //NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_normals_cloud_);
     //NewObject->computeInterestfrustum(NewObject->visualization_of_normals_cloud_);
 
-    //NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, hardOcclusions);
+    //NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, HardOcclusions);
 
     // NewObject->computeAverageNormal();
     // NewObject->computeDesiredPositionVector();
@@ -1113,10 +1133,10 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_
 
     DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     double *parameters = OptimizationProblem->computeBestNextViewNoOcclusions(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
-                                                                  NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-                                                                  NewObject->visualization_of_normals_cloud_,
-                                                                  viewer,
-                                                                  myfile);
+                                                                              NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
+                                                                              NewObject->visualization_of_normals_cloud_,
+                                                                              viewer,
+                                                                              myfile);
     // double *parameters = OptimizationProblem->computeBestNextViewSimple(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
     //                                                                          NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
     //                                                                          NewObject->visualization_of_normals_cloud_);
