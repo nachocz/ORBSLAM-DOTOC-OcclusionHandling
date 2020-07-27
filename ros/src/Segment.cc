@@ -280,15 +280,15 @@ namespace DEF_OBJ_TRACK
         //         min_point_OBB_.z - tol1Z_, min_point_OBB_.z - tol1Z_, min_point_OBB_.z - tol1Z_, min_point_OBB_.z - tol1Z_;
         // }
 
-        // Eigen::Matrix<float, 3, 4> corners;
-        // corners << max_point_OBB_.x + tol1X_, max_point_OBB_.x + tol1X_, min_point_OBB_.x - tol1X_, min_point_OBB_.x - tol1X_,
-        //     max_point_OBB_.y + tol1Y_, min_point_OBB_.y - tol1Y_, min_point_OBB_.y - tol1Y_, max_point_OBB_.y + tol1Y_,
-        //     0.0, 0.0, 0.0, 0.0;
-
         Eigen::Matrix<float, 3, 4> corners;
-        corners << max_point_OBB_.x, max_point_OBB_.x, min_point_OBB_.x, min_point_OBB_.x,
-            max_point_OBB_.y, min_point_OBB_.y, min_point_OBB_.y, max_point_OBB_.y,
+        corners << max_point_OBB_.x + tol1X_, max_point_OBB_.x + tol1X_, min_point_OBB_.x - tol1X_, min_point_OBB_.x - tol1X_,
+            max_point_OBB_.y + tol1Y_, min_point_OBB_.y - tol1Y_, min_point_OBB_.y - tol1Y_, max_point_OBB_.y + tol1Y_,
             0.0, 0.0, 0.0, 0.0;
+
+        // Eigen::Matrix<float, 3, 4> corners;
+        // corners << max_point_OBB_.x, max_point_OBB_.x, min_point_OBB_.x, min_point_OBB_.x,
+        //     max_point_OBB_.y, min_point_OBB_.y, min_point_OBB_.y, max_point_OBB_.y,
+        //     0.0, 0.0, 0.0, 0.0;
 
         for (uint32_t i = 0; i < 4; i++) //watchout, eigen begins in 0 index
         {
@@ -578,7 +578,7 @@ namespace DEF_OBJ_TRACK
                 {
                     std::stringstream ssCube;
                     ssCube << "interaction_" << j << "_";
-                    //viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 0.0, 1.0, 0.0, ssCube.str());
+                    viewer->addCube(sv_centroid.x - cubeSize, sv_centroid.x + cubeSize, sv_centroid.y - cubeSize, sv_centroid.y + cubeSize, sv_centroid.z - cubeSize, sv_centroid.z + cubeSize, 0.0, 1.0, 0.0, ssCube.str());
                 }
                 else if (segmentType_ == OCCLUDING_ELEMENT)
                 {

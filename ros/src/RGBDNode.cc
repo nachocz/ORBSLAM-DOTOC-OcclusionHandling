@@ -922,7 +922,7 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
       {
         if (previousObject->isItInCameraToObjectFrustum(SVcentroid))
         {
-          cout << "it is!! it iss :D" << endl;
+          //cout << "it is!! it iss :D" << endl;
           HardOcclusions->label_of_sv_++;
           HardOcclusions->segments_sv_map_.insert(std::pair<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr>(HardOcclusions->label_of_sv_, supervoxel));
           HardOcclusions->segments_colors_RGB_.insert(std::pair<uint32_t, pcl::PointXYZRGBA>(HardOcclusions->label_of_sv_, SVcolorRGB));
