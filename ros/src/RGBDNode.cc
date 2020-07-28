@@ -993,8 +993,17 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
   cv::Mat camera_position = orb_slam_->GetCurrentPosition();
   cv::Mat camera_intrinsics = orb_slam_->GetCameraIntrinsics();
 
-  if (!camera_position.empty() && (NewObject->label_of_sv_ > 0))
+  if (!camera_position.empty() && (NewObject->number_of_sv_in_segment_ > 0))
   {
+
+    std::map<uint32_t, pcl::PointNormal> object_normals = NewObject->segments_normals_;
+
+    for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
+    {
+      pcl::PointNormal sv_normal = object_normals[i + 1]; //index in maps start at 1 for me (0 preserved for special cases)
+
+    }
+
     NewObject->camera_position_ = camera_position;
     NewObject->camera_intrinsics_ = camera_intrinsics;
     NewObject->computeInverseOfCameraPositionAndExtendedIntrinsics();

@@ -160,6 +160,9 @@ namespace DEF_OBJ_TRACK
         bool visualize_rgba_pointcloud = true;
         bool show_normals = true;
         bool show_adjacency = false;
+
+    public:
+        //Occlusion handling
     };
 
 } // namespace DEF_OBJ_TRACK
