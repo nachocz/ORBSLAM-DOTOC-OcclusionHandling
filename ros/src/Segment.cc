@@ -374,6 +374,26 @@ namespace DEF_OBJ_TRACK
         return it_is_in_frustum;
     }
 
+    bool Segment::isItInPerceptionSphere(pcl::PointXYZRGBA sv_centroid, const double &sphere_radius)
+    {
+        bool it_is_in_sphere = false;
+
+        Eigen::Matrix<float, 3, 1> supervoxel_centroid;
+        supervoxel_centroid << sv_centroid.x,
+            sv_centroid.y,
+            sv_centroid.z;
+
+        Eigen::Matrix<float, 3, 1> mass_center_to_sv_vector;
+        mass_center_to_sv_vector = supervoxel_centroid - mass_center_;
+
+        if (mass_center_to_sv_vector.norm() < sphere_radius)
+        {
+            it_is_in_sphere = true;
+        }
+
+        return it_is_in_sphere;
+    }
+
     //OTHER UTILITIES
     void Segment::computeInverseOfCameraPositionAndExtendedIntrinsics()
     {
@@ -917,7 +937,7 @@ namespace DEF_OBJ_TRACK
         //End of visual checking of optimization process
     }
 
-    void Segment::NormalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius)
+    void Segment::normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius)
     {
 
         Eigen::Matrix<float, 3, 1> sphere_center;
@@ -1007,4 +1027,7 @@ namespace DEF_OBJ_TRACK
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
     }
 
+    void Segment::centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject)
+    {
+    }
 } // namespace DEF_OBJ_TRACK

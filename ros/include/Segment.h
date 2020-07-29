@@ -63,6 +63,7 @@ namespace DEF_OBJ_TRACK
         void computeLargestDistanceToCamera(pcl::PointCloud<pcl::PointNormal>::Ptr visualization_normal_cloud);
         bool isItInOcclusionsDepthRange(pcl::PointXYZRGBA sv_centroid);
         bool isItInCameraToObjectFrustum(pcl::PointXYZRGBA sv_centroid);
+        bool isItInPerceptionSphere(pcl::PointXYZRGBA sv_centroid, const double &sphere_radius);
         void visualizeObjectsReprojectionOnCamera(std::shared_ptr<DEF_OBJ_TRACK::Segment> occlusions, std::shared_ptr<DEF_OBJ_TRACK::Segment> hardOcclusions);
 
         //General visualization
@@ -70,7 +71,8 @@ namespace DEF_OBJ_TRACK
         void VisualizeCloudsAndBoundingBoxes(pcl::visualization::PCLVisualizer::Ptr viewer);
 
         //Next Best View with occlusions
-        void NormalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius);
+        void normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius);
+        void centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject);
 
     public:
         //Main structure of a Segment

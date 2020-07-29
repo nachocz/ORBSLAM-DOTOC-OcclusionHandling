@@ -117,6 +117,7 @@ public:
 
 public:
   //Parameters
+  double sphere_radius = 0.5;
 
   bool activate_SLAM;
 

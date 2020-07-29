@@ -926,7 +926,7 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
     {
       if (previousObject->isItInOcclusionsDepthRange(SVcentroid))
       {
-        if (previousObject->isItInCameraToObjectFrustum(SVcentroid))
+        if (previousObject->isItInPerceptionSphere(SVcentroid, sphere_radius)) //(previousObject->isItInCameraToObjectFrustum(SVcentroid))
         {
           //cout << "it is!! it iss :D" << endl;
           HardOcclusions->label_of_sv_++;
@@ -1028,9 +1028,8 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     NewObject->computeAngularError();
     NewObject->computePositionError();
 
-    double sphere_radius = 0.5;
-
-    NewObject->NormalsToSphereIntersectionPoints(viewer, sphere_radius);
+    NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
+    HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius, NewObject);
 
     // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
@@ -1127,7 +1126,7 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
 
     //visualization of camera and errors on viewer
     viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_vectors_cloud_, 1, 1.0f, "visualization_of_vectors_cloud_");
-    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_of_vectors_cloud_");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0, "visualization_of_vectors_cloud_");
     viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_of_vectors_cloud_");
   }
 }
