@@ -956,21 +956,21 @@ namespace DEF_OBJ_TRACK
             sv_normal_world_reference.normal_y = sv_normal.normal_y - sv_normal.y;
             sv_normal_world_reference.normal_z = sv_normal.normal_z - sv_normal.z;
 
-            cout << "sv_normal_world_reference: " << sv_normal_world_reference << endl;
+            // cout << "sv_normal_world_reference: " << sv_normal_world_reference << endl;
 
             Eigen::Matrix<float, 3, 1> o_vector;
             o_vector << sv_normal.x,
                 sv_normal.y,
                 sv_normal.z;
 
-            cout << "o_vector: " << o_vector << endl;
+            // cout << "o_vector: " << o_vector << endl;
 
             Eigen::Matrix<float, 3, 1> normal_world_reference;
             normal_world_reference << sv_normal_world_reference.normal_x,
                 sv_normal_world_reference.normal_y,
                 sv_normal_world_reference.normal_z;
 
-            cout << "normal_world_reference: " << normal_world_reference << endl;
+            // cout << "normal_world_reference: " << normal_world_reference << endl;
 
             Eigen::Matrix<float, 3, 1> l_vector;
             l_vector << normal_world_reference(0),
@@ -980,8 +980,8 @@ namespace DEF_OBJ_TRACK
             l_vector = l_vector.normalized();
             float normal_norm = l_vector.norm();
 
-            cout << "l_vector: " << l_vector << endl;
-            cout << "l_vector_norm: " << normal_norm << endl;
+            // cout << "l_vector: " << l_vector << endl;
+            // cout << "l_vector_norm: " << normal_norm << endl;
 
             float a, b, c;
 
@@ -989,17 +989,17 @@ namespace DEF_OBJ_TRACK
             b = 2 * (l_vector.dot(o_vector - sphere_center));
             c = ((o_vector - sphere_center).norm()) * ((o_vector - sphere_center).norm()) - (sphere_radius * sphere_radius);
 
-            cout << " a, b, c: " << a << " " << b << " " << c << endl;
+            // cout << " a, b, c: " << a << " " << b << " " << c << endl;
 
             float d_line_parameter = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
 
-            cout << "d_line_parameter: " << d_line_parameter << endl;
+            // cout << "d_line_parameter: " << d_line_parameter << endl;
 
             Eigen::Matrix<float, 3, 1> intersection_point;
 
             intersection_point = o_vector + l_vector * d_line_parameter;
 
-            cout << "intersection_point: " << intersection_point << endl;
+            // cout << "intersection_point: " << intersection_point << endl;
 
             pcl::PointNormal visualization_rays;
 
@@ -1018,8 +1018,8 @@ namespace DEF_OBJ_TRACK
 
             visualization_of_sphere_rays->push_back(visualization_rays);
 
-            cout << "vector_module_checking: " << vector_module_checking.norm() << endl;
-            cout << "sphere_radius: " << sphere_radius << endl;
+            // cout << "vector_module_checking: " << vector_module_checking.norm() << endl;
+            // cout << "sphere_radius: " << sphere_radius << endl;
         }
 
         viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
@@ -1029,5 +1029,78 @@ namespace DEF_OBJ_TRACK
 
     void Segment::centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject)
     {
+        Eigen::Matrix<float, 3, 1> sphere_center;
+        sphere_center << NewObject->mass_center_(0),
+            NewObject->mass_center_(1),
+            NewObject->mass_center_(2);
+
+        pcl::PointCloud<pcl::PointNormal>::Ptr visualization_of_sphere_rays(new pcl::PointCloud<pcl::PointNormal>);
+
+        for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
+        {
+            for (int j = 0; j < number_of_sv_in_segment_; ++j)
+            {
+                pcl::PointNormal sv_normal = NewObject->segments_normals_[i + 1]; //index in maps start at 1 for me (0 preserved for special cases)
+                pcl::PointNormal occlusor_normal = segments_normals_[j + 1];
+
+                // cout << "sv_normal_world_reference: " << sv_normal_world_reference << endl;
+
+                Eigen::Matrix<float, 3, 1> o_vector;
+                o_vector << sv_normal.x,
+                    sv_normal.y,
+                    sv_normal.z;
+
+                // cout << "o_vector: " << o_vector << endl;
+
+                Eigen::Matrix<float, 3, 1> l_vector;
+                l_vector << occlusor_normal.x - sv_normal.x,
+                    occlusor_normal.y - sv_normal.y,
+                    occlusor_normal.z - sv_normal.z;
+
+                l_vector = l_vector.normalized();
+                float normal_norm = l_vector.norm();
+
+                // cout << "l_vector: " << l_vector << endl;
+                // cout << "l_vector_norm: " << normal_norm << endl;
+
+                float a, b, c;
+
+                a = 1.0;
+                b = 2 * (l_vector.dot(o_vector - sphere_center));
+                c = ((o_vector - sphere_center).norm()) * ((o_vector - sphere_center).norm()) - (sphere_radius * sphere_radius);
+
+                // cout << " a, b, c: " << a << " " << b << " " << c << endl;
+
+                float d_line_parameter = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
+
+                // cout << "d_line_parameter: " << d_line_parameter << endl;
+
+                Eigen::Matrix<float, 3, 1> intersection_point;
+
+                intersection_point = o_vector + l_vector * d_line_parameter;
+
+                // cout << "intersection_point: " << intersection_point << endl;
+
+                pcl::PointNormal visualization_rays;
+
+                visualization_rays.x = sphere_center(0);
+                visualization_rays.y = sphere_center(1);
+                visualization_rays.z = sphere_center(2);
+                visualization_rays.normal_x = intersection_point(0) - sphere_center(0);
+                visualization_rays.normal_y = intersection_point(1) - sphere_center(1);
+                visualization_rays.normal_z = intersection_point(2) - sphere_center(2);
+
+                Eigen::Matrix<float, 3, 1> vector_module_checking;
+
+                vector_module_checking << intersection_point(0) - sphere_center(0),
+                    intersection_point(1) - sphere_center(1),
+                    intersection_point(2) - sphere_center(2);
+
+                visualization_of_sphere_rays->push_back(visualization_rays);
+            }
+        }
+        viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays_2");
+        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 0.0, 0.0, "visualization_rays_2");
+        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays_2");
     }
 } // namespace DEF_OBJ_TRACK
