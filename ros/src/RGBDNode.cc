@@ -1023,13 +1023,15 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
 
     NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, HardOcclusions);
 
-    NewObject->computeAverageNormal();
-    NewObject->computeDesiredPositionVector();
-    NewObject->computeAngularError();
-    NewObject->computePositionError();
+    // NewObject->computeAverageNormal();
+    // NewObject->computeDesiredPositionVector();
+    // NewObject->computeAngularError();
+    // NewObject->computePositionError();
 
-    NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
-    HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius, NewObject);
+    std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections = NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
+    std::map<uint32_t, Eigen::Matrix<float, 3, 1>> occlusion_sphere_intersections = HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius, NewObject);
+
+    
 
     // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,

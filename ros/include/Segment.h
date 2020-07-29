@@ -71,8 +71,8 @@ namespace DEF_OBJ_TRACK
         void VisualizeCloudsAndBoundingBoxes(pcl::visualization::PCLVisualizer::Ptr viewer);
 
         //Next Best View with occlusions
-        void normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius);
-        void centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject);
+        std::map<uint32_t, Eigen::Matrix<float, 3, 1>> normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius);
+        std::map<uint32_t, Eigen::Matrix<float, 3, 1>> centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject);
 
     public:
         //Main structure of a Segment

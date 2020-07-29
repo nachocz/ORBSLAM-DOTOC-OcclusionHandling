@@ -937,8 +937,9 @@ namespace DEF_OBJ_TRACK
         //End of visual checking of optimization process
     }
 
-    void Segment::normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius)
+    std::map<uint32_t, Eigen::Matrix<float, 3, 1>> Segment::normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius)
     {
+        std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections;
 
         Eigen::Matrix<float, 3, 1> sphere_center;
         sphere_center << mass_center_(0),
@@ -1020,15 +1021,22 @@ namespace DEF_OBJ_TRACK
 
             // cout << "vector_module_checking: " << vector_module_checking.norm() << endl;
             // cout << "sphere_radius: " << sphere_radius << endl;
+            object_sphere_intersections[i + 1] = intersection_point;
+
+            cout << "object_sphere_intersections[i + 1] = " << object_sphere_intersections[i + 1] << endl;
         }
 
         viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_rays");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
+
+        return object_sphere_intersections;
     }
 
-    void Segment::centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject)
+    std::map<uint32_t, Eigen::Matrix<float, 3, 1>> Segment::centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject)
     {
+        std::map<uint32_t, Eigen::Matrix<float, 3, 1>> occlusion_sphere_intersections;
+
         Eigen::Matrix<float, 3, 1> sphere_center;
         sphere_center << NewObject->mass_center_(0),
             NewObject->mass_center_(1),
@@ -1108,10 +1116,16 @@ namespace DEF_OBJ_TRACK
                     intersection_point(2) - sphere_center(2);
 
                 visualization_of_sphere_rays->push_back(visualization_rays);
+
+                occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = antipodes_intersection_point;
+                cout << "i * number_of_sv_in_segment_ + j+1: " << i * number_of_sv_in_segment_ + j+1;
+                cout << "occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = " << occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] << endl;
             }
         }
         viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays_2");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 0.0, 0.0, "visualization_rays_2");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays_2");
+
+        return occlusion_sphere_intersections;
     }
 } // namespace DEF_OBJ_TRACK
