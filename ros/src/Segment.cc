@@ -1081,14 +1081,25 @@ namespace DEF_OBJ_TRACK
 
                 // cout << "intersection_point: " << intersection_point << endl;
 
+                Eigen::Matrix<float, 3, 1> l_antipodes;
+                l_antipodes << intersection_point(0) - sphere_center(0),
+                    intersection_point(1) - sphere_center(1),
+                    intersection_point(2) - sphere_center(2);
+
+                l_antipodes = l_antipodes.normalized();
+
+                Eigen::Matrix<float, 3, 1> antipodes_intersection_point;
+
+                antipodes_intersection_point = intersection_point - l_antipodes * (sphere_radius * 2.0);
+
                 pcl::PointNormal visualization_rays;
 
                 visualization_rays.x = sphere_center(0);
                 visualization_rays.y = sphere_center(1);
                 visualization_rays.z = sphere_center(2);
-                visualization_rays.normal_x = intersection_point(0) - sphere_center(0);
-                visualization_rays.normal_y = intersection_point(1) - sphere_center(1);
-                visualization_rays.normal_z = intersection_point(2) - sphere_center(2);
+                visualization_rays.normal_x = antipodes_intersection_point(0) - sphere_center(0);
+                visualization_rays.normal_y = antipodes_intersection_point(1) - sphere_center(1);
+                visualization_rays.normal_z = antipodes_intersection_point(2) - sphere_center(2);
 
                 Eigen::Matrix<float, 3, 1> vector_module_checking;
 
