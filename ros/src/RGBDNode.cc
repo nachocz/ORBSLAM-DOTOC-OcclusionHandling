@@ -1075,52 +1075,100 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
 
       average_theta = average_theta + theta;
       average_phi = average_phi + phi;
-
     }
 
-    // for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
-    // {
+    for (int i = 0; i < NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_; ++i)
+    {
 
-    //   float x = object_sphere_intersections[i + 1](0);
-    //   float y = object_sphere_intersections[i + 1](1);
-    //   float z = object_sphere_intersections[i + 1](2);
+      float x = object_sphere_intersections[i + 1](0);
+      float y = object_sphere_intersections[i + 1](1);
+      float z = object_sphere_intersections[i + 1](2);
 
-    //   float theta, phi;
+      float theta, phi;
 
-    //   if (z > 0)
-    //   {
-    //     theta = atan(sqrt(x * x + y * y) / z);
-    //   }
-    //   else if (z = 0)
-    //   {
-    //     theta = PI / 2;
-    //   }
-    //   else
-    //   {
-    //     theta = PI + atan(sqrt(x * x + y * y) / z);
-    //   }
+      if (z > 0)
+      {
+        theta = atan(sqrt(x * x + y * y) / z);
+      }
+      else if (z = 0)
+      {
+        theta = PI / 2;
+      }
+      else
+      {
+        theta = PI + atan(sqrt(x * x + y * y) / z);
+      }
 
-    //   if (x > 0 && y > 0) //1st Q
-    //   {
-    //     phi = atan(y / x);
-    //   }
-    //   else if (x > 0 && y < 0) // 4º Q
-    //   {
-    //     phi = 2 * PI + atan(y / x);
-    //   }
-    //   else if (x = 0)
-    //   {
-    //     phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
-    //   }
-    //   else if (x < 0)
-    //   {
-    //     phi = PI + atan(y / x); //2nd and 3rd Q
-    //   }
+      if (x > 0 && y > 0) //1st Q
+      {
+        phi = atan(y / x);
+      }
+      else if (x > 0 && y < 0) // 4º Q
+      {
+        phi = 2 * PI + atan(y / x);
+      }
+      else if (x = 0)
+      {
+        phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
+      }
+      else if (x < 0)
+      {
+        phi = PI + atan(y / x); //2nd and 3rd Q
+      }
 
-    //   average_theta = average_theta + theta;
-    //   average_phi = average_phi + phi;
+      average_theta = average_theta + theta;
+      average_phi = average_phi + phi;
+    }
 
-    // }
+    average_theta = average_theta / (NewObject->number_of_sv_in_segment_ + NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_);
+    average_phi = average_phi / (NewObject->number_of_sv_in_segment_ + NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_);
+
+    Eigen::Matrix<float, 3, 1> position_vector;
+    position_vector << sphere_radius * sin(average_theta) * cos(average_phi),
+        sphere_radius * sin(average_theta) * sin(average_phi),
+        sphere_radius * cos(average_theta);
+
+    Eigen::Matrix<float, 3, 1> sphere_center;
+    sphere_center << NewObject->mass_center_(0),
+        NewObject->mass_center_(1),
+        NewObject->mass_center_(2);
+
+    Eigen::Matrix<float, 3, 1> normal_vector_unitary;
+    normal_vector_unitary << sphere_center(0)-position_vector(0),
+        sphere_center(1)-position_vector(1),
+        sphere_center(2)-position_vector(2);
+
+    normal_vector_unitary = normal_vector_unitary.normalized();
+
+    Eigen::Matrix<float, 3, 1> U_vector; //2nd basis vector
+    U_vector << float(1.0),
+        float(0.0),                                                    //(1.0)
+        float((-normal_vector_unitary(0)) / normal_vector_unitary(2)); //(-normal_vector_unitary(0) - normal_vector_unitary(1)) / normal_vector_unitary(2)
+    U_vector = U_vector.normalized();
+
+    Eigen::Matrix<float, 3, 1> V_vector; //3rd basis vector
+    V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
+
+    Eigen::Matrix<float, 3, 1> W_vector; //Comprobation vector, it must be = normal_vector_unitary
+    W_vector = (U_vector.cross(V_vector)).normalized();
+
+    Eigen::Matrix<float, 3, 3> R_matrix; //Rwc (camera to world)
+    R_matrix << U_vector, V_vector, W_vector;
+
+    Eigen::Matrix<float, 3, 4> Rt_matrix; //
+    Rt_matrix << R_matrix, position_vector;
+
+    Eigen::Affine3f t_objetivo_xy_fijos;
+    for (int iAffine = 0; iAffine < 3; iAffine++)
+    {
+      for (int jAffine = 0; jAffine < 4; jAffine++)
+      {
+        t_objetivo_xy_fijos(iAffine, jAffine) = static_cast<float>(Rt_matrix(iAffine, jAffine));
+      }
+    }
+
+    viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos, "ref_objetivo"); //camera visualization
+    //NewObject->optimal_position_ = t_objetivo;
 
     // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
