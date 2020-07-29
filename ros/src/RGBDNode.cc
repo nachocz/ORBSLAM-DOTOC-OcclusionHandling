@@ -111,7 +111,7 @@ void RGBDNode::initializeParameters()
   cout << "- Normal importance set to: " << normal_importance << endl;
 
   use_single_cam_transform = false;
-  normals_scale = seed_resolution / 2.0;
+  normals_scale = 1.0; //seed_resolution / 2.0;
 
   resolution = voxel_resolution / 2;
 
@@ -1028,7 +1028,7 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     NewObject->computeAngularError();
     NewObject->computePositionError();
 
-    double sphere_radius = 0.3;
+    double sphere_radius = 0.5;
 
     NewObject->NormalsToSphereIntersectionPoints(viewer, sphere_radius);
 
