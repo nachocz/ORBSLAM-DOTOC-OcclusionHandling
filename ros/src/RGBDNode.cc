@@ -1031,7 +1031,96 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections = NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>> occlusion_sphere_intersections = HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius, NewObject);
 
-    
+    double average_theta = 0.0;
+    double average_phi = 0.0;
+
+    for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
+    {
+
+      float x = object_sphere_intersections[i + 1](0);
+      float y = object_sphere_intersections[i + 1](1);
+      float z = object_sphere_intersections[i + 1](2);
+
+      float theta, phi;
+
+      if (z > 0)
+      {
+        theta = atan(sqrt(x * x + y * y) / z);
+      }
+      else if (z = 0)
+      {
+        theta = PI / 2;
+      }
+      else
+      {
+        theta = PI + atan(sqrt(x * x + y * y) / z);
+      }
+
+      if (x > 0 && y > 0) //1st Q
+      {
+        phi = atan(y / x);
+      }
+      else if (x > 0 && y < 0) // 4º Q
+      {
+        phi = 2 * PI + atan(y / x);
+      }
+      else if (x = 0)
+      {
+        phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
+      }
+      else if (x < 0)
+      {
+        phi = PI + atan(y / x); //2nd and 3rd Q
+      }
+
+      average_theta = average_theta + theta;
+      average_phi = average_phi + phi;
+
+    }
+
+    // for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
+    // {
+
+    //   float x = object_sphere_intersections[i + 1](0);
+    //   float y = object_sphere_intersections[i + 1](1);
+    //   float z = object_sphere_intersections[i + 1](2);
+
+    //   float theta, phi;
+
+    //   if (z > 0)
+    //   {
+    //     theta = atan(sqrt(x * x + y * y) / z);
+    //   }
+    //   else if (z = 0)
+    //   {
+    //     theta = PI / 2;
+    //   }
+    //   else
+    //   {
+    //     theta = PI + atan(sqrt(x * x + y * y) / z);
+    //   }
+
+    //   if (x > 0 && y > 0) //1st Q
+    //   {
+    //     phi = atan(y / x);
+    //   }
+    //   else if (x > 0 && y < 0) // 4º Q
+    //   {
+    //     phi = 2 * PI + atan(y / x);
+    //   }
+    //   else if (x = 0)
+    //   {
+    //     phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
+    //   }
+    //   else if (x < 0)
+    //   {
+    //     phi = PI + atan(y / x); //2nd and 3rd Q
+    //   }
+
+    //   average_theta = average_theta + theta;
+    //   average_phi = average_phi + phi;
+
+    // }
 
     // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
