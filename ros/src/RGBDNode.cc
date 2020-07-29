@@ -30,9 +30,8 @@ int main(int argc, char **argv)
 
   node.viewer = newViewer;
   //node.viewer->setBackgroundColor(0.0, 0.0, 0.0);
-  //node.viewer->setBackgroundColor(0.5, 0.5, 0.5);
-
-  node.viewer->setBackgroundColor(1.0, 1.0, 1.0);
+  node.viewer->setBackgroundColor(0.5, 0.5, 0.5);
+  //node.viewer->setBackgroundColor(1.0, 1.0, 1.0);
 
   ros::spin();
 
@@ -789,7 +788,7 @@ std::shared_ptr<DEF_OBJ_TRACK::Segment> RGBDNode::getClosestObject(const pcl::LC
 
   //TODO... but much later in the future: automatise all of this for several objects, several interactors etc
   pcl::PointCloud<pcl::PointNormal>::Ptr average_normal_cloud(new pcl::PointCloud<pcl::PointNormal>);
-  initial_object->visualization_of_normals_cloud_ = average_normal_cloud;
+  initial_object->visualization_of_vectors_cloud_ = average_normal_cloud;
   //BestNextView
   cv::Mat camera_position = orb_slam_->GetCurrentPosition();
   cv::Mat camera_intrinsics = orb_slam_->GetCameraIntrinsics();
@@ -801,8 +800,8 @@ std::shared_ptr<DEF_OBJ_TRACK::Segment> RGBDNode::getClosestObject(const pcl::LC
     initial_object->computeInverseOfCameraPositionAndExtendedIntrinsics();
     initial_object->computeCameraZaxisOnWorldReference();
 
-    initial_object->computeLargestDistanceToCamera(initial_object->visualization_of_normals_cloud_);
-    initial_object->computeInterestfrustum(initial_object->visualization_of_normals_cloud_);
+    initial_object->computeLargestDistanceToCamera(initial_object->visualization_of_vectors_cloud_);
+    initial_object->computeInterestfrustum(initial_object->visualization_of_vectors_cloud_);
   }
 
   initial_object->camera_position_ = camera_position;
@@ -843,7 +842,7 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
 
   //for visualization....
   pcl::PointCloud<pcl::PointNormal>::Ptr average_normal_cloud(new pcl::PointCloud<pcl::PointNormal>);
-  NewObject->visualization_of_normals_cloud_ = average_normal_cloud;
+  NewObject->visualization_of_vectors_cloud_ = average_normal_cloud;
 
   int total_number_of_sv = 0;
 
@@ -890,11 +889,18 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
           // normalWorldRef.normal_y = newNormal.normal_y - newNormal.y;
           // normalWorldRef.normal_z = newNormal.normal_z - newNormal.z;
 
+          // Eigen::Matrix<float, 3, 1> normal_world_reference;
+          // normal_world_reference << normalWorldRef.normal_x,
+          //     normalWorldRef.normal_y,
+          //     normalWorldRef.normal_z;
+
+          // Eigen::Matrix<float, 3, 1> normal_world_reference_normalized;
+          // normal_world_reference_normalized = normal_world_reference.normalized();
+          // float normal_norm = normal_world_reference_normalized.norm();
+          // cout << "normal_norm: " << normal_norm << endl;
+
           // NewObject->segment_normals_on_world_reference_.insert(std::pair<uint32_t, pcl::PointNormal>(NewObject->label_of_sv_, normalWorldRef));
-          // if (NewObject->label_of_sv_ == 1)
-          // {
-          //   NewObject->visualization_of_normals_cloud_->push_back(newNormal);
-          // }
+          // NewObject->visualization_of_vectors_cloud_->push_back(normalWorldRef);
 
           not_belonging_yet = false;
         }
@@ -984,6 +990,10 @@ void RGBDNode::trackObject(std::shared_ptr<DEF_OBJ_TRACK::Segment> previousObjec
 
   NewObject->VisualizeCloudsAndBoundingBoxes(viewer);
 
+  // viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_vectors_cloud_, 1, 1.0f, "vectors_cloud");
+  // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "vectors_cloud");
+  // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "vectors_cloud");
+
   return;
 }
 
@@ -1001,7 +1011,6 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
     {
       pcl::PointNormal sv_normal = object_normals[i + 1]; //index in maps start at 1 for me (0 preserved for special cases)
-
     }
 
     NewObject->camera_position_ = camera_position;
@@ -1009,8 +1018,8 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     NewObject->computeInverseOfCameraPositionAndExtendedIntrinsics();
     NewObject->computeCameraZaxisOnWorldReference();
 
-    NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_normals_cloud_);
-    NewObject->computeInterestfrustum(NewObject->visualization_of_normals_cloud_);
+    NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_vectors_cloud_);
+    NewObject->computeInterestfrustum(NewObject->visualization_of_vectors_cloud_);
 
     NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, HardOcclusions);
 
@@ -1019,17 +1028,21 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     NewObject->computeAngularError();
     NewObject->computePositionError();
 
+    double sphere_radius = 0.3;
+
+    NewObject->NormalsToSphereIntersectionPoints(viewer, sphere_radius);
+
     // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
     //                                                               NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
     //                                                               NewObject->camera_to_object_frustum_,
     //                                                               Occlusions->segments_normals_, Occlusions->number_of_sv_in_segment_,
-    //                                                               NewObject->visualization_of_normals_cloud_,
+    //                                                               NewObject->visualization_of_vectors_cloud_,
     //                                                               viewer,
     //                                                               myfile);
     // // double *parameters = OptimizationProblem->computeBestNextViewSimple(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
     // //                                                                          NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-    // //                                                                           NewObject->visualization_of_normals_cloud_);
+    // //                                                                           NewObject->visualization_of_vectors_cloud_);
     // Eigen::Affine3f t_objetivo;
     // for (int iAffine = 0; iAffine < 3; iAffine++)
     // {
@@ -1110,10 +1123,12 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     //viewer->addText3D(optimal_text.str(), optimalCameraPostion, 0.01, 0.0, 0.0, 0.0, "optimal camera position 3d txt");
     //viewer->addText3D(actual_camera_text.str(), actualCameraPosition, 0.01, 0.0, 0.0, 0.0, "actual camera position 3d txt");
 
-    //Occlusions->OcclusionOptimizationVisualChecking(NewObject, t_objetivo,viewer);
+    //Occlusions->OcclusionVisualChecking(NewObject, t_objetivo,viewer);
 
     //visualization of camera and errors on viewer
-    viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_normals_cloud_, 1, 1.0f, "average_normal");
+    viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_vectors_cloud_, 1, 1.0f, "visualization_of_vectors_cloud_");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_of_vectors_cloud_");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_of_vectors_cloud_");
   }
 }
 
@@ -1130,8 +1145,8 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_
     NewObject->computeInverseOfCameraPositionAndExtendedIntrinsics();
     //NewObject->computeCameraZaxisOnWorldReference();
 
-    //NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_normals_cloud_);
-    //NewObject->computeInterestfrustum(NewObject->visualization_of_normals_cloud_);
+    //NewObject->computeLargestDistanceToCamera(NewObject->visualization_of_vectors_cloud_);
+    //NewObject->computeInterestfrustum(NewObject->visualization_of_vectors_cloud_);
 
     //NewObject->visualizeObjectsReprojectionOnCamera(Occlusions, HardOcclusions);
 
@@ -1143,12 +1158,12 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_
     DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
     double *parameters = OptimizationProblem->computeBestNextViewNoOcclusions(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
                                                                               NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-                                                                              NewObject->visualization_of_normals_cloud_,
+                                                                              NewObject->visualization_of_vectors_cloud_,
                                                                               viewer,
                                                                               myfile);
     // double *parameters = OptimizationProblem->computeBestNextViewSimple(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
     //                                                                          NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-    //                                                                          NewObject->visualization_of_normals_cloud_);
+    //                                                                          NewObject->visualization_of_vectors_cloud_);
     Eigen::Affine3f t_objetivo;
     for (int iAffine = 0; iAffine < 3; iAffine++)
     {
@@ -1228,10 +1243,10 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(std::shared_ptr<DEF_OBJ_
     //viewer->addText3D(optimal_text.str(), optimalCameraPostion, 0.01, 0.0, 0.0, 0.0, "optimal camera position 3d txt");
     //viewer->addText3D(actual_camera_text.str(), actualCameraPosition, 0.01, 0.0, 0.0, 0.0, "actual camera position 3d txt");
 
-    //Occlusions->OcclusionOptimizationVisualChecking(NewObject, t_objetivo,viewer);
+    //Occlusions->OcclusionVisualChecking(NewObject, t_objetivo,viewer);
 
     //visualization of camera and errors on viewer
-    viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_normals_cloud_, 1, 1.0f, "average_normal");
+    viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_vectors_cloud_, 1, 1.0f, "average_normal");
   }
 }
 

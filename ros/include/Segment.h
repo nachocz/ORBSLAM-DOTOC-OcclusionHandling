@@ -66,8 +66,11 @@ namespace DEF_OBJ_TRACK
         void visualizeObjectsReprojectionOnCamera(std::shared_ptr<DEF_OBJ_TRACK::Segment> occlusions, std::shared_ptr<DEF_OBJ_TRACK::Segment> hardOcclusions);
 
         //General visualization
-        void OcclusionOptimizationVisualChecking(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, Eigen::Affine3f t_objetivo, pcl::visualization::PCLVisualizer::Ptr viewer);
+        void OcclusionVisualChecking(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, Eigen::Affine3f t_objetivo, pcl::visualization::PCLVisualizer::Ptr viewer);
         void VisualizeCloudsAndBoundingBoxes(pcl::visualization::PCLVisualizer::Ptr viewer);
+
+        //Next Best View with occlusions
+        void NormalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius);
 
     public:
         //Main structure of a Segment
@@ -83,8 +86,8 @@ namespace DEF_OBJ_TRACK
         //Maps that storea the  Segment's Supervoxels. RGB and normal information is already in each sv, but having separated maps is more clear
         std::map<uint32_t, pcl::Supervoxel<PointTSuperVoxel>::Ptr> segments_sv_map_;
         std::map<uint32_t, pcl::PointXYZRGBA> segments_colors_RGB_;
-        std::map<uint32_t, pcl::PointNormal> segments_normals_; //Each normalPoint also stores the SV's centroid information
-        std::map<uint32_t, pcl::PointNormal> segment_normals_on_world_reference_;
+        std::map<uint32_t, pcl::PointNormal> segments_normals_;                   //Each normalPoint also stores the SV's centroid information, starting and ending point of the normal vector
+        std::map<uint32_t, pcl::PointNormal> segment_normals_on_world_reference_; //point= world referenc origin, normal= vector in world reference
 
         enum SegmentState
         {
@@ -129,7 +132,7 @@ namespace DEF_OBJ_TRACK
         //Optimization of next best view
         pcl::PointNormal average_normal_, average_normal_global_reference_;
         //Average Normal Visualization cloud
-        pcl::PointCloud<pcl::PointNormal>::Ptr visualization_of_normals_cloud_;
+        pcl::PointCloud<pcl::PointNormal>::Ptr visualization_of_vectors_cloud_;
         //Desired position of object's perception information
         float desired_distance_from_object_ = 0.3; //m
         float inv_distance_from_object_ = 1 / desired_distance_from_object_;

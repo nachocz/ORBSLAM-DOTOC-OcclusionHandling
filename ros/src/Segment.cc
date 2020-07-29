@@ -145,7 +145,7 @@ namespace DEF_OBJ_TRACK
         average_normal_global_reference_.y = invPosition.at<float>(1, 3);
         average_normal_global_reference_.z = invPosition.at<float>(2, 3);
 
-        visualization_of_normals_cloud_->push_back(average_normal_global_reference_);
+        visualization_of_vectors_cloud_->push_back(average_normal_global_reference_);
 
         position_error_ = sqrt(((average_normal_global_reference_.normal_x - average_normal_global_reference_.x) * (average_normal_global_reference_.normal_x - average_normal_global_reference_.x)) + ((average_normal_global_reference_.normal_y - average_normal_global_reference_.y) * (average_normal_global_reference_.normal_y - average_normal_global_reference_.y)) + ((average_normal_global_reference_.normal_z - average_normal_global_reference_.z) * (average_normal_global_reference_.normal_z - average_normal_global_reference_.z)));
     }
@@ -414,7 +414,7 @@ namespace DEF_OBJ_TRACK
         camera_z_axis_on_world_reference_.normal_y = x3D.at<float>(1);
         camera_z_axis_on_world_reference_.normal_z = x3D.at<float>(2);
 
-        //visualization_of_normals_cloud_->push_back(camera_z_axis_on_world_reference_);
+        //visualization_of_vectors_cloud_->push_back(camera_z_axis_on_world_reference_);
     }
 
     void Segment::addSupervoxelConnectionsToViewer2(pcl::PointXYZ &supervoxel_center,
@@ -663,7 +663,7 @@ namespace DEF_OBJ_TRACK
         }
     }
 
-    void Segment::OcclusionOptimizationVisualChecking(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, Eigen::Affine3f t_objetivo,pcl::visualization::PCLVisualizer::Ptr viewer)
+    void Segment::OcclusionVisualChecking(std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject, Eigen::Affine3f t_objetivo, pcl::visualization::PCLVisualizer::Ptr viewer)
     {
         //visual checking of optimization process
         /// Windows names
@@ -766,9 +766,9 @@ namespace DEF_OBJ_TRACK
             wvector.normal_y = W_vector(1);
             wvector.normal_z = W_vector(2);
 
-            NewObject->visualization_of_normals_cloud_->push_back(uvector);
-            NewObject->visualization_of_normals_cloud_->push_back(vvector);
-            NewObject->visualization_of_normals_cloud_->push_back(wvector);
+            NewObject->visualization_of_vectors_cloud_->push_back(uvector);
+            NewObject->visualization_of_vectors_cloud_->push_back(vvector);
+            NewObject->visualization_of_vectors_cloud_->push_back(wvector);
 
             Eigen::Matrix<double, 3, 3> R_matrix;
             R_matrix << U_vector, V_vector, W_vector;
@@ -780,10 +780,15 @@ namespace DEF_OBJ_TRACK
 
             // Camera.cx : 328.0010681152344 Camera.cy : 241.31031799316406;
 
+            double fx = camera_intrinsics_extended_.at<double>(0, 0);
+            double fy = camera_intrinsics_extended_.at<double>(1, 1);
+            double cx = camera_intrinsics_extended_.at<double>(0, 2);
+            double cy = camera_intrinsics_extended_.at<double>(1, 2);
+
             Eigen::Matrix<double, 3, 3>
                 k_matrix; //this could be any intrinsics... but for possible future expansions of the optimization function -> TODO: add intrinsics as variables
-            k_matrix << double(617.82), double(0.0), double(328.0010681152344),
-                double(0.0), double(617.858), double(241.31031799316406),
+            k_matrix << fx, double(0.0), cx,
+                double(0.0), fy, cy,
                 double(0.0), double(0.0), double(1.0);
 
             Eigen::Matrix<double, 3, 5> OBBCorners_and_sv_vector; //OBB center position [SV, corner1, corner2, corner3, corner4]
@@ -903,15 +908,103 @@ namespace DEF_OBJ_TRACK
             visualizationVector.normal_y = NewObject->camera_to_object_frustum_[i].y - t_objetivo(1, 3);
             visualizationVector.normal_z = NewObject->camera_to_object_frustum_[i].z - t_objetivo(2, 3);
 
-            NewObject->visualization_of_normals_cloud_->push_back(visualizationVector);
+            NewObject->visualization_of_vectors_cloud_->push_back(visualizationVector);
         }
 
         cv::imshow(atom_window, atom_image);
         cv::waitKey(1);
 
-       
-
         //End of visual checking of optimization process
+    }
+
+    void Segment::NormalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius)
+    {
+
+        Eigen::Matrix<float, 3, 1> sphere_center;
+        sphere_center << mass_center_(0),
+            mass_center_(1),
+            mass_center_(2);
+
+        pcl::PointCloud<pcl::PointNormal>::Ptr visualization_of_sphere_rays(new pcl::PointCloud<pcl::PointNormal>);
+
+        for (int i = 0; i < number_of_sv_in_segment_; ++i)
+        {
+            pcl::PointNormal sv_normal = segments_normals_[i + 1]; //index in maps start at 1 for me (0 preserved for special cases)
+
+            pcl::PointNormal sv_normal_world_reference;
+            sv_normal_world_reference.normal_x = sv_normal.normal_x - sv_normal.x;
+            sv_normal_world_reference.normal_y = sv_normal.normal_y - sv_normal.y;
+            sv_normal_world_reference.normal_z = sv_normal.normal_z - sv_normal.z;
+
+            cout << "sv_normal_world_reference: " << sv_normal_world_reference << endl;
+
+            Eigen::Matrix<float, 3, 1> o_vector;
+            o_vector << sv_normal.x,
+                sv_normal.y,
+                sv_normal.z;
+
+            cout << "o_vector: " << o_vector << endl;
+
+            Eigen::Matrix<float, 3, 1> normal_world_reference;
+            normal_world_reference << sv_normal_world_reference.normal_x,
+                sv_normal_world_reference.normal_y,
+                sv_normal_world_reference.normal_z;
+
+            cout << "normal_world_reference: " << normal_world_reference << endl;
+
+            Eigen::Matrix<float, 3, 1> l_vector;
+            l_vector << normal_world_reference(0),
+                normal_world_reference(1),
+                normal_world_reference(2);
+
+            l_vector = l_vector.normalized();
+            float normal_norm = l_vector.norm();
+
+            cout << "l_vector: " << l_vector << endl;
+            cout << "l_vector_norm: " << normal_norm << endl;
+
+            float a, b, c;
+
+            a = 1.0;
+            b = 2 * (l_vector.dot(o_vector - sphere_center));
+            c = ((o_vector - sphere_center).norm()) * ((o_vector - sphere_center).norm()) - (sphere_radius * sphere_radius);
+
+            cout << " a, b, c: " << a << " " << b << " " << c << endl;
+
+            float d_line_parameter = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
+
+            cout << "d_line_parameter: " << d_line_parameter << endl;
+
+            Eigen::Matrix<float, 3, 1> intersection_point;
+
+            intersection_point = o_vector + l_vector * d_line_parameter;
+
+            cout << "intersection_point: " << intersection_point << endl;
+
+            pcl::PointNormal visualization_rays;
+
+            visualization_rays.x = sphere_center(0);
+            visualization_rays.y = sphere_center(1);
+            visualization_rays.z = sphere_center(2);
+            visualization_rays.normal_x = intersection_point(0) - sphere_center(0);
+            visualization_rays.normal_y = intersection_point(1) - sphere_center(1);
+            visualization_rays.normal_z = intersection_point(2) - sphere_center(2);
+
+            Eigen::Matrix<float, 3, 1> vector_module_checking;
+
+            vector_module_checking << intersection_point(0) - sphere_center(0),
+                intersection_point(1) - sphere_center(1),
+                intersection_point(2) - sphere_center(2);
+
+            visualization_of_sphere_rays->push_back(visualization_rays);
+
+            cout << "vector_module_checking: " << vector_module_checking.norm() << endl;
+            cout << "sphere_radius: " << sphere_radius << endl;
+        }
+
+        viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
+        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_rays");
+        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
     }
 
 } // namespace DEF_OBJ_TRACK
