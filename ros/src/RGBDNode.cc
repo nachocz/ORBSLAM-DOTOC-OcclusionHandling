@@ -1031,8 +1031,16 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections = NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>> occlusion_sphere_intersections = HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius, NewObject);
 
+    double number_of_sv_in_object = NewObject->number_of_sv_in_segment_;
+    double number_of_sv_occluding = HardOcclusions->number_of_sv_in_segment_;
+
     double average_theta = 0.0;
     double average_phi = 0.0;
+
+    double theta_sin_sum = 0.0;
+    double theta_cos_sum = 0.0;
+    double phi_sin_sum = 0.0;
+    double phi_cos_sum = 0.0;
 
     for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
     {
@@ -1073,16 +1081,19 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
         phi = PI + atan(y / x); //2nd and 3rd Q
       }
 
-      average_theta = average_theta + theta;
-      average_phi = average_phi + phi;
+      theta_sin_sum += sin(theta);
+      theta_cos_sum += cos(theta);
+
+      phi_sin_sum += sin(phi);
+      phi_cos_sum += cos(phi);
     }
 
     for (int i = 0; i < NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_; ++i)
     {
 
-      float x = object_sphere_intersections[i + 1](0);
-      float y = object_sphere_intersections[i + 1](1);
-      float z = object_sphere_intersections[i + 1](2);
+      float x = occlusion_sphere_intersections[i + 1](0);
+      float y = occlusion_sphere_intersections[i + 1](1);
+      float z = occlusion_sphere_intersections[i + 1](2);
 
       float theta, phi;
 
@@ -1115,13 +1126,14 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
       {
         phi = PI + atan(y / x); //2nd and 3rd Q
       }
-
-      average_theta = average_theta + theta;
-      average_phi = average_phi + phi;
     }
 
-    average_theta = average_theta / (NewObject->number_of_sv_in_segment_ + NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_);
-    average_phi = average_phi / (NewObject->number_of_sv_in_segment_ + NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_);
+    //mean of angles
+
+    average_theta = atan2(theta_sin_sum / number_of_sv_in_object, theta_cos_sum / number_of_sv_in_object);
+    average_phi = atan2(phi_sin_sum / number_of_sv_in_object, phi_cos_sum / number_of_sv_in_object);
+
+    //Camera coordenates generator
 
     Eigen::Matrix<float, 3, 1> position_vector;
     position_vector << sphere_radius * sin(average_theta) * cos(average_phi),
@@ -1134,9 +1146,9 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
         NewObject->mass_center_(2);
 
     Eigen::Matrix<float, 3, 1> normal_vector_unitary;
-    normal_vector_unitary << sphere_center(0)-position_vector(0),
-        sphere_center(1)-position_vector(1),
-        sphere_center(2)-position_vector(2);
+    normal_vector_unitary << sphere_center(0) - position_vector(0),
+        sphere_center(1) - position_vector(1),
+        sphere_center(2) - position_vector(2);
 
     normal_vector_unitary = normal_vector_unitary.normalized();
 
@@ -1169,99 +1181,6 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
 
     viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos, "ref_objetivo"); //camera visualization
     //NewObject->optimal_position_ = t_objetivo;
-
-    // DEF_OBJ_TRACK::BestNextView *OptimizationProblem = new (DEF_OBJ_TRACK::BestNextView);
-    // double *parameters = OptimizationProblem->computeBestNextView(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
-    //                                                               NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-    //                                                               NewObject->camera_to_object_frustum_,
-    //                                                               Occlusions->segments_normals_, Occlusions->number_of_sv_in_segment_,
-    //                                                               NewObject->visualization_of_vectors_cloud_,
-    //                                                               viewer,
-    //                                                               myfile);
-    // // double *parameters = OptimizationProblem->computeBestNextViewSimple(NewObject->segments_normals_, NewObject->number_of_sv_in_segment_,
-    // //                                                                          NewObject->Twc_depth_, NewObject->camera_intrinsics_extended_,
-    // //                                                                           NewObject->visualization_of_vectors_cloud_);
-    // Eigen::Affine3f t_objetivo;
-    // for (int iAffine = 0; iAffine < 3; iAffine++)
-    // {
-    //   for (int jAffine = 0; jAffine < 4; jAffine++)
-    //   {
-    //     t_objetivo(iAffine, jAffine) = static_cast<float>(parameters[4 * iAffine + jAffine]);
-    //   }
-    // }
-
-    // Eigen::Matrix<float, 3, 1> position_vector;
-    // position_vector << t_objetivo(0, 3),
-    //     t_objetivo(1, 3),
-    //     t_objetivo(2, 3);
-
-    // Eigen::Matrix<float, 3, 1> normal_vector_unitary;
-    // normal_vector_unitary << static_cast<float>(parameters[2]),
-    //     t_objetivo(1, 2),
-    //     t_objetivo(2, 2);
-
-    // normal_vector_unitary = normal_vector_unitary.normalized();
-
-    // Eigen::Matrix<float, 3, 1> U_vector; //2nd basis vector
-    // U_vector << float(1.0),
-    //     float(0.0),                                                    //(1.0)
-    //     float((-normal_vector_unitary(0)) / normal_vector_unitary(2)); //(-normal_vector_unitary(0) - normal_vector_unitary(1)) / normal_vector_unitary(2)
-    // U_vector = U_vector.normalized();
-
-    // Eigen::Matrix<float, 3, 1> V_vector; //3rd basis vector
-    // V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
-
-    // Eigen::Matrix<float, 3, 1> W_vector; //Comprobation vector, it must be = normal_vector_unitary
-    // W_vector = (U_vector.cross(V_vector)).normalized();
-
-    // Eigen::Matrix<float, 3, 3> R_matrix; //Rwc (camera to world)
-    // R_matrix << U_vector, V_vector, W_vector;
-
-    // Eigen::Matrix<float, 3, 4> Rt_matrix; //
-    // Rt_matrix << R_matrix, position_vector;
-
-    // Eigen::Affine3f t_objetivo_xy_fijos;
-    // for (int iAffine = 0; iAffine < 3; iAffine++)
-    // {
-    //   for (int jAffine = 0; jAffine < 4; jAffine++)
-    //   {
-    //     t_objetivo_xy_fijos(iAffine, jAffine) = static_cast<float>(Rt_matrix(iAffine, jAffine));
-    //   }
-    // }
-
-    // viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos, "ref_objetivo"); //camera visualization
-    // NewObject->optimal_position_ = t_objetivo;
-
-    // delete OptimizationProblem;
-    // delete parameters;
-
-    // pcl::PointXYZ optimalCameraPostion;
-
-    // optimalCameraPostion.x = position_vector(0);
-    // optimalCameraPostion.y = position_vector(1);
-    // optimalCameraPostion.z = position_vector(2);
-
-    // pcl::PointXYZ actualCameraPosition;
-    // actualCameraPosition.x = NewObject->Twc_depth_.at<float>(0, 3);
-    // actualCameraPosition.y = NewObject->Twc_depth_.at<float>(1, 3);
-    // actualCameraPosition.z = NewObject->Twc_depth_.at<float>(2, 3);
-
-    // float cubeSize = 0.004;
-    // viewer->addCube(actualCameraPosition.x - cubeSize, actualCameraPosition.x + cubeSize, actualCameraPosition.y - cubeSize, actualCameraPosition.y + cubeSize, actualCameraPosition.z - cubeSize, actualCameraPosition.z + cubeSize, 1.0, 0.0, 0.0, "camera bad");
-    // viewer->addCube(optimalCameraPostion.x - cubeSize, optimalCameraPostion.x + cubeSize, optimalCameraPostion.y - cubeSize, optimalCameraPostion.y + cubeSize, optimalCameraPostion.z - cubeSize, optimalCameraPostion.z + cubeSize, 0.0, 1.0, 0.0, "camera good");
-
-    // std::ostringstream optimal_text;
-    // optimal_text << "Optimal" << endl
-    //              << "camera";
-
-    // std::ostringstream actual_camera_text;
-    // actual_camera_text << "Real" << endl
-    //                    << "camera";
-
-    //viewer->addText3D(optimal_text.str(), optimalCameraPostion, 0.01, 0.0, 0.0, 0.0, "optimal camera position 3d txt");
-    //viewer->addText3D(actual_camera_text.str(), actualCameraPosition, 0.01, 0.0, 0.0, 0.0, "actual camera position 3d txt");
-
-    //Occlusions->OcclusionVisualChecking(NewObject, t_objetivo,viewer);
 
     //visualization of camera and errors on viewer
     viewer->addPointCloudNormals<PointNTSuperVoxel>(NewObject->visualization_of_vectors_cloud_, 1, 1.0f, "visualization_of_vectors_cloud_");

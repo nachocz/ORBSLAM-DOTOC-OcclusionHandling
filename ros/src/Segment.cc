@@ -1011,9 +1011,9 @@ namespace DEF_OBJ_TRACK
             visualization_rays.normal_y = intersection_point(1) - sphere_center(1);
             visualization_rays.normal_z = intersection_point(2) - sphere_center(2);
 
-            Eigen::Matrix<float, 3, 1> vector_module_checking;
+            Eigen::Matrix<float, 3, 1> intersection_point_global_ref;
 
-            vector_module_checking << intersection_point(0) - sphere_center(0),
+            intersection_point_global_ref << intersection_point(0) - sphere_center(0),
                 intersection_point(1) - sphere_center(1),
                 intersection_point(2) - sphere_center(2);
 
@@ -1021,11 +1021,11 @@ namespace DEF_OBJ_TRACK
 
             // cout << "vector_module_checking: " << vector_module_checking.norm() << endl;
             // cout << "sphere_radius: " << sphere_radius << endl;
-            object_sphere_intersections[i + 1] = intersection_point;
+            object_sphere_intersections[i + 1] = intersection_point_global_ref;
 
             cout << "object_sphere_intersections[i + 1] = " << object_sphere_intersections[i + 1] << endl;
         }
-
+        cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
         viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_rays");
         viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
@@ -1098,7 +1098,7 @@ namespace DEF_OBJ_TRACK
 
                 Eigen::Matrix<float, 3, 1> antipodes_intersection_point;
 
-                antipodes_intersection_point = intersection_point - l_antipodes * (sphere_radius * 2.0);
+                antipodes_intersection_point = intersection_point - l_antipodes * (sphere_radius * 2.0); // =-intersection_point
 
                 pcl::PointNormal visualization_rays;
 
@@ -1109,17 +1109,11 @@ namespace DEF_OBJ_TRACK
                 visualization_rays.normal_y = antipodes_intersection_point(1) - sphere_center(1);
                 visualization_rays.normal_z = antipodes_intersection_point(2) - sphere_center(2);
 
-                Eigen::Matrix<float, 3, 1> vector_module_checking;
-
-                vector_module_checking << intersection_point(0) - sphere_center(0),
-                    intersection_point(1) - sphere_center(1),
-                    intersection_point(2) - sphere_center(2);
-
                 visualization_of_sphere_rays->push_back(visualization_rays);
 
-                occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = antipodes_intersection_point;
-                cout << "i * number_of_sv_in_segment_ + j+1: " << i * number_of_sv_in_segment_ + j+1;
-                cout << "occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = " << occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] << endl;
+                occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j + 1] = antipodes_intersection_point;
+                //cout << "i * number_of_sv_in_segment_ + j+1: " << i * number_of_sv_in_segment_ + j + 1;
+                //cout << "occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = " << occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j + 1] << endl;
             }
         }
         viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays_2");
