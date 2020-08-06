@@ -1222,6 +1222,24 @@ void RGBDNode::computeOptimalCameraLocation(
     VectorEigen V_vector = W_vector.cross(U_vector);
     V_vector = V_vector.normalized();
 
+    // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
+    Eigen::Matrix<float, 3, 3> R_matrix;
+    R_matrix << U_vector, V_vector, W_vector;
+
+    Eigen::Matrix<float, 3, 4> Rt_matrix;
+    Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
+
+    Eigen::Affine3f t_objetivo_xy_fijos;
+    for (int iAffine = 0; iAffine < 3; iAffine++) {
+      for (int jAffine = 0; jAffine < 4; jAffine++) {
+        t_objetivo_xy_fijos(iAffine, jAffine) =
+            static_cast<float>(Rt_matrix(iAffine, jAffine));
+      }
+    }
+
+    viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
+                                "ref_objetivo"); // camera visualization
+
     // CAMERA EXTRINSICS CALCULATION:
 
     Eigen::Matrix<float, 3, 3> R_extrinsics;
@@ -1240,6 +1258,9 @@ void RGBDNode::computeOptimalCameraLocation(
     // Object plane points
     std::map<uint32_t, VectorEigen> object_3D_plane_points,
         occlusions_3D_plane_points;
+
+    std::map<uint32_t, VectorEigen> object_2D_plane_points,
+        occlusions_2D_plane_points;
 
     VectorEigen p_zero_vector = initial_camera_position_vector_world_ref;
 
@@ -1267,6 +1288,10 @@ void RGBDNode::computeOptimalCameraLocation(
       d = a / b;
       plane_point = l_zero_vector + l_vector * d;
       object_3D_plane_points[i + 1] = plane_point;
+
+      Eigen::Matrix<float, 4, 1> plane_point_extended;
+      plane_point_extended << plane_point, 1;
+      object_2D_plane_points[i + 1] = Rt_extrinsics * plane_point_extended;
     }
     // Occlusion plane points
 
@@ -1288,24 +1313,28 @@ void RGBDNode::computeOptimalCameraLocation(
       d = a / b;
       plane_point = l_zero_vector + l_vector * d;
       occlusions_3D_plane_points[i + 1] = plane_point;
+      Eigen::Matrix<float, 4, 1> plane_point_extended;
+      plane_point_extended << plane_point, 1;
+      occlusions_2D_plane_points[i + 1] = Rt_extrinsics * plane_point_extended;
     }
-    // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
-    Eigen::Matrix<float, 3, 3> R_matrix;
-    R_matrix << U_vector, V_vector, W_vector;
 
-    Eigen::Matrix<float, 3, 4> Rt_matrix;
-    Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
+    // CALCULATING NEXT MOVING STEP
 
-    Eigen::Affine3f t_objetivo_xy_fijos;
-    for (int iAffine = 0; iAffine < 3; iAffine++) {
-      for (int jAffine = 0; jAffine < 4; jAffine++) {
-        t_objetivo_xy_fijos(iAffine, jAffine) =
-            static_cast<float>(Rt_matrix(iAffine, jAffine));
+    int number_of_occlusions_nearby = 0;
+    Eigen::Matrix<float, 2, 1> summatory_vector;
+
+    for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
+      Eigen::Matrix<float, 2, 1> point_2D_coord;
+      point_2D_coord << occlusions_2D_plane_points[i + 1](0),
+          occlusions_2D_plane_points[i + 1](1);
+
+      if (point_2D_coord.norm() <= 2 * seed_resolution) {
+        number_of_occlusions_nearby++;
+      }
+      if (point_2D_coord.norm() <= 2 * sphere_radius) {
+        summatory_vector = -point_2D_coord;
       }
     }
-
-    viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
-                                "ref_objetivo"); // camera visualization
 
     // NewObject->optimal_position_ = t_objetivo;
 

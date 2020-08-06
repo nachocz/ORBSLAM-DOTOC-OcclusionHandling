@@ -1392,11 +1392,9 @@ Segment::computePerpendicularVector(Eigen::Matrix<float, 1, 3> v_input) {
   int number_of_non_zero_elements = 0;
   for (int i = 0; i < 3; i++) {
     if (v_input(i) != 0)
-      cout << "v_input(i): " << v_input(i) << endl;
     number_of_non_zero_elements++;
   }
-  cout << "number_of_non_zero_elements: " << number_of_non_zero_elements
-       << endl;
+
 
   if (number_of_non_zero_elements == 3) {
     v_perp(0) = 1.0;
@@ -1429,7 +1427,6 @@ Segment::computePerpendicularVector(Eigen::Matrix<float, 1, 3> v_input) {
     }
   }
 
-  cout << "v_perp: " << v_perp << endl;
   return v_perp;
 } // namespace DEF_OBJ_TRACK
 } // namespace DEF_OBJ_TRACK
