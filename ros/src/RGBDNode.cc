@@ -1185,8 +1185,9 @@ void RGBDNode::computeOptimalCameraLocation(
     // NewObject->computeAngularError();
     // NewObject->computePositionError();
 
-    std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections_sphere_ref =
-        NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
+    std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
+        object_sphere_intersections_VECTORS_world_ref =
+            NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
         occlusion_sphere_intersections =
             HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius,
@@ -1194,14 +1195,18 @@ void RGBDNode::computeOptimalCameraLocation(
 
     Eigen::Matrix<float, 3, 1> initial_camera_position_vector_sphere_ref =
         NewObject->computeIdealOptimalCameraPosition(
-            sphere_radius, object_sphere_intersections_sphere_ref);
+            viewer, sphere_radius,
+            object_sphere_intersections_VECTORS_world_ref);
 
     Eigen::Matrix<float, 3, 1> sphere_center;
     sphere_center << NewObject->mass_center_(0), NewObject->mass_center_(1),
         NewObject->mass_center_(2);
 
     Eigen::Matrix<float, 3, 1> initial_camera_position_vector_world_ref =
-        sphere_center + initial_camera_position_vector_sphere_ref;
+        initial_camera_position_vector_sphere_ref + sphere_center;
+
+    cout << "initial_camera_position_vector_world_ref: " << endl
+         << initial_camera_position_vector_world_ref << endl;
 
     float cubeSize2 = 0.005;
     std::stringstream ssCube;

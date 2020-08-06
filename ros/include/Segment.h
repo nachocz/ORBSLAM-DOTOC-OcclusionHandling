@@ -97,6 +97,7 @@ public:
                            std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject);
 
   Eigen::Matrix<float, 1, 3> computeIdealOptimalCameraPosition(
+      pcl::visualization::PCLVisualizer::Ptr viewer,
       const double &sphere_radius,
       std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
           object_sphere_intersections);

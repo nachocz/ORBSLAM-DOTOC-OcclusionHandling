@@ -1159,17 +1159,17 @@ Segment::normalsToSphereIntersectionPoints(
     visualization_rays.normal_y = intersection_point(1) - sphere_center(1);
     visualization_rays.normal_z = intersection_point(2) - sphere_center(2);
 
-    Eigen::Matrix<float, 3, 1> intersection_point_sphere_ref;
+    Eigen::Matrix<float, 3, 1> intersection_vectors_world_ref;
 
-    intersection_point_sphere_ref << intersection_point(0) - sphere_center(0),
-        intersection_point(1) - sphere_center(0),
-        intersection_point(2) - sphere_center(0);
+    intersection_vectors_world_ref << intersection_point(0) - sphere_center(0),
+        intersection_point(1) - sphere_center(1),
+        intersection_point(2) - sphere_center(2);
 
     visualization_of_sphere_rays->push_back(visualization_rays);
 
     // cout << "vector_module_checking: " << vector_module_checking.norm() <<
     // endl; cout << "sphere_radius: " << sphere_radius << endl;
-    object_sphere_intersections[i + 1] = intersection_point_sphere_ref;
+    object_sphere_intersections[i + 1] = intersection_vectors_world_ref;
 
     // cout << "object_sphere_intersections[i + 1] = " <<
     // object_sphere_intersections[i + 1] << endl;
@@ -1295,17 +1295,21 @@ Segment::centroidsToOcclussorRays(
 }
 
 Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
-    const double &sphere_radius, std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
-                                     object_sphere_intersections_sphere_reference) {
+    pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius,
+    std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
+        object_sphere_intersections_sphere_reference) {
   int number_of_sv_in_object = number_of_sv_in_segment_;
+
+  Eigen::Matrix<float, 3, 1> sphere_center;
+  sphere_center << mass_center_(0), mass_center_(1), mass_center_(2);
   // double number_of_sv_occluding = HardOcclusions->number_of_sv_in_segment_;
 
-  float average_theta,average_phi;
+  float average_theta, average_phi;
 
-  float theta_sin_sum = 0.0;
-  float theta_cos_sum = 0.0;
-  float phi_sin_sum = 0.0;
-  float phi_cos_sum = 0.0;
+  float theta_sin_sum;
+  float theta_cos_sum;
+  float phi_sin_sum;
+  float phi_cos_sum;
 
   for (int i = 0; i < number_of_sv_in_segment_; ++i) {
 
@@ -1313,13 +1317,16 @@ Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
     float y = object_sphere_intersections_sphere_reference[i + 1](1);
     float z = object_sphere_intersections_sphere_reference[i + 1](2);
 
+    cout << "object_sphere_intersections_sphere_reference[i + 1]" << endl;
+    cout << object_sphere_intersections_sphere_reference[i + 1] << endl;
+
     float theta, phi;
 
     if (z > 0) {
       theta = atan(sqrt(x * x + y * y) / z);
     } else if (z == 0) {
       theta = PI / 2;
-    } else {
+    } else if (z < 0) {
       theta = PI + atan(sqrt(x * x + y * y) / z);
     }
 
@@ -1349,13 +1356,30 @@ Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
   average_phi = atan2((phi_sin_sum / number_of_sv_in_object),
                       (phi_cos_sum / number_of_sv_in_object));
 
+  cout << "average_theta: " << average_theta * 360 / (2 * PI) << endl;
+  cout << "average_phi: " << average_phi * 360 / (2 * PI) << endl;
+
   // Camera coordenates generator
 
   Eigen::Matrix<float, 3, 1> initial_camera_position_vector;
   initial_camera_position_vector
-      << sphere_radius * sin(average_theta) * cos(average_phi),
-      sphere_radius * sin(average_theta) * sin(average_phi),
-      sphere_radius * cos(average_theta);
+      << float(sphere_radius) * sin(average_theta) * cos(average_phi),
+      float(sphere_radius) * sin(average_theta) * sin(average_phi),
+      float(sphere_radius) * cos(average_theta);
+
+  cout << "initial_camera_position_vector (sphere ref: " << endl;
+  cout << initial_camera_position_vector << endl;
+
+  float cubeSize2 = 0.005;
+  std::stringstream ssCube;
+  ssCube << "skereee2";
+  viewer->addCube(initial_camera_position_vector(0) - cubeSize2,
+                  initial_camera_position_vector(0) + cubeSize2,
+                  initial_camera_position_vector(1) - cubeSize2,
+                  initial_camera_position_vector(1) + cubeSize2,
+                  initial_camera_position_vector(2) - cubeSize2,
+                  initial_camera_position_vector(2) + cubeSize2, 0.0,
+                  1.0, 1.0, ssCube.str());
 
   return initial_camera_position_vector;
 }
