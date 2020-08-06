@@ -1031,114 +1031,24 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections = NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
     std::map<uint32_t, Eigen::Matrix<float, 3, 1>> occlusion_sphere_intersections = HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius, NewObject);
 
-    double number_of_sv_in_object = NewObject->number_of_sv_in_segment_;
-    double number_of_sv_occluding = HardOcclusions->number_of_sv_in_segment_;
+    Eigen::Matrix<float, 3, 1> initial_camera_position_vector = NewObject->computeIdealOptimalCameraPosition(sphere_radius,object_sphere_intersections);
 
-    double average_theta = 0.0;
-    double average_phi = 0.0;
+   
 
-    double theta_sin_sum = 0.0;
-    double theta_cos_sum = 0.0;
-    double phi_sin_sum = 0.0;
-    double phi_cos_sum = 0.0;
+    
 
-    for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i)
-    {
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
+//OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF 
 
-      float x = object_sphere_intersections[i + 1](0);
-      float y = object_sphere_intersections[i + 1](1);
-      float z = object_sphere_intersections[i + 1](2);
-
-      float theta, phi;
-
-      if (z > 0)
-      {
-        theta = atan(sqrt(x * x + y * y) / z);
-      }
-      else if (z = 0)
-      {
-        theta = PI / 2;
-      }
-      else
-      {
-        theta = PI + atan(sqrt(x * x + y * y) / z);
-      }
-
-      if (x > 0 && y > 0) //1st Q
-      {
-        phi = atan(y / x);
-      }
-      else if (x > 0 && y < 0) // 4º Q
-      {
-        phi = 2 * PI + atan(y / x);
-      }
-      else if (x = 0)
-      {
-        phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
-      }
-      else if (x < 0)
-      {
-        phi = PI + atan(y / x); //2nd and 3rd Q
-      }
-
-      theta_sin_sum += sin(theta);
-      theta_cos_sum += cos(theta);
-
-      phi_sin_sum += sin(phi);
-      phi_cos_sum += cos(phi);
-    }
-
-    for (int i = 0; i < NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_; ++i)
-    {
-
-      float x = occlusion_sphere_intersections[i + 1](0);
-      float y = occlusion_sphere_intersections[i + 1](1);
-      float z = occlusion_sphere_intersections[i + 1](2);
-
-      float theta, phi;
-
-      if (z > 0)
-      {
-        theta = atan(sqrt(x * x + y * y) / z);
-      }
-      else if (z = 0)
-      {
-        theta = PI / 2;
-      }
-      else
-      {
-        theta = PI + atan(sqrt(x * x + y * y) / z);
-      }
-
-      if (x > 0 && y > 0) //1st Q
-      {
-        phi = atan(y / x);
-      }
-      else if (x > 0 && y < 0) // 4º Q
-      {
-        phi = 2 * PI + atan(y / x);
-      }
-      else if (x = 0)
-      {
-        phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
-      }
-      else if (x < 0)
-      {
-        phi = PI + atan(y / x); //2nd and 3rd Q
-      }
-    }
-
-    //mean of angles
-
-    average_theta = atan2(theta_sin_sum / number_of_sv_in_object, theta_cos_sum / number_of_sv_in_object);
-    average_phi = atan2(phi_sin_sum / number_of_sv_in_object, phi_cos_sum / number_of_sv_in_object);
-
-    //Camera coordenates generator
-
-    Eigen::Matrix<float, 3, 1> position_vector;
-    position_vector << sphere_radius * sin(average_theta) * cos(average_phi),
-        sphere_radius * sin(average_theta) * sin(average_phi),
-        sphere_radius * cos(average_theta);
 
     Eigen::Matrix<float, 3, 1> sphere_center;
     sphere_center << NewObject->mass_center_(0),
@@ -1146,9 +1056,9 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
         NewObject->mass_center_(2);
 
     Eigen::Matrix<float, 3, 1> normal_vector_unitary;
-    normal_vector_unitary << sphere_center(0) - position_vector(0),
-        sphere_center(1) - position_vector(1),
-        sphere_center(2) - position_vector(2);
+    normal_vector_unitary << sphere_center(0) - initial_camera_position_vector(0),
+        sphere_center(1) - initial_camera_position_vector(1),
+        sphere_center(2) - initial_camera_position_vector(2);
 
     normal_vector_unitary = normal_vector_unitary.normalized();
 
@@ -1168,7 +1078,7 @@ void RGBDNode::computeOptimalCameraLocation(std::shared_ptr<DEF_OBJ_TRACK::Segme
     R_matrix << U_vector, V_vector, W_vector;
 
     Eigen::Matrix<float, 3, 4> Rt_matrix; //
-    Rt_matrix << R_matrix, position_vector;
+    Rt_matrix << R_matrix, initial_camera_position_vector;
 
     Eigen::Affine3f t_objetivo_xy_fijos;
     for (int iAffine = 0; iAffine < 3; iAffine++)

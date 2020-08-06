@@ -1023,12 +1023,14 @@ namespace DEF_OBJ_TRACK
             // cout << "sphere_radius: " << sphere_radius << endl;
             object_sphere_intersections[i + 1] = intersection_point_global_ref;
 
-            cout << "object_sphere_intersections[i + 1] = " << object_sphere_intersections[i + 1] << endl;
+            //cout << "object_sphere_intersections[i + 1] = " << object_sphere_intersections[i + 1] << endl;
         }
-        cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
-        viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_rays");
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
+        //cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+
+         //UNCOMENT TO VISUALIZE SPHERE RAYS
+        // viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
+        // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0, "visualization_rays");
+        // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
 
         return object_sphere_intersections;
     }
@@ -1116,10 +1118,126 @@ namespace DEF_OBJ_TRACK
                 //cout << "occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = " << occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j + 1] << endl;
             }
         }
-        viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays_2");
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 0.0, 0.0, "visualization_rays_2");
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays_2");
+        //UNCOMENT TO VISUALIZE SPHERE RAYS
+        // viewer->addPointCloudNormals<PointNTSuperVoxel>(visualization_of_sphere_rays, 1, 1.0f, "visualization_rays_2");
+        // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 0.0, 0.0, "visualization_rays_2");
+        // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays_2");
 
         return occlusion_sphere_intersections;
+    }
+
+
+    Eigen::Matrix<float,1,3> Segment::computeIdealOptimalCameraPosition( const double &sphere_radius,std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections)
+    {
+         double number_of_sv_in_object = number_of_sv_in_segment_;
+    //double number_of_sv_occluding = HardOcclusions->number_of_sv_in_segment_;
+
+    double average_theta = 0.0;
+    double average_phi = 0.0;
+
+    double theta_sin_sum = 0.0;
+    double theta_cos_sum = 0.0;
+    double phi_sin_sum = 0.0;
+    double phi_cos_sum = 0.0;
+
+    for (int i = 0; i < number_of_sv_in_segment_; ++i)
+    {
+
+      float x = object_sphere_intersections[i + 1](0);
+      float y = object_sphere_intersections[i + 1](1);
+      float z = object_sphere_intersections[i + 1](2);
+
+      float theta, phi;
+
+      if (z > 0)
+      {
+        theta = atan(sqrt(x * x + y * y) / z);
+      }
+      else if (z = 0)
+      {
+        theta = PI / 2;
+      }
+      else
+      {
+        theta = PI + atan(sqrt(x * x + y * y) / z);
+      }
+
+      if (x > 0 && y > 0) //1st Q
+      {
+        phi = atan(y / x);
+      }
+      else if (x > 0 && y < 0) // 4º Q
+      {
+        phi = 2 * PI + atan(y / x);
+      }
+      else if (x = 0)
+      {
+        phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
+      }
+      else if (x < 0)
+      {
+        phi = PI + atan(y / x); //2nd and 3rd Q
+      }
+
+      theta_sin_sum += sin(theta);
+      theta_cos_sum += cos(theta);
+
+      phi_sin_sum += sin(phi);
+      phi_cos_sum += cos(phi);
+    }
+
+    // for (int i = 0; i < NewObject->number_of_sv_in_segment_ * HardOcclusions->number_of_sv_in_segment_; ++i)
+    // {
+
+    //   float x = occlusion_sphere_intersections[i + 1](0);
+    //   float y = occlusion_sphere_intersections[i + 1](1);
+    //   float z = occlusion_sphere_intersections[i + 1](2);
+
+    //   float theta, phi;
+
+    //   if (z > 0)
+    //   {
+    //     theta = atan(sqrt(x * x + y * y) / z);
+    //   }
+    //   else if (z = 0)
+    //   {
+    //     theta = PI / 2;
+    //   }
+    //   else
+    //   {
+    //     theta = PI + atan(sqrt(x * x + y * y) / z);
+    //   }
+
+    //   if (x > 0 && y > 0) //1st Q
+    //   {
+    //     phi = atan(y / x);
+    //   }
+    //   else if (x > 0 && y < 0) // 4º Q
+    //   {
+    //     phi = 2 * PI + atan(y / x);
+    //   }
+    //   else if (x = 0)
+    //   {
+    //     phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
+    //   }
+    //   else if (x < 0)
+    //   {
+    //     phi = PI + atan(y / x); //2nd and 3rd Q
+    //   }
+    // }
+
+    //mean of angles
+
+    average_theta = atan2(theta_sin_sum / number_of_sv_in_object, theta_cos_sum / number_of_sv_in_object);
+    average_phi = atan2(phi_sin_sum / number_of_sv_in_object, phi_cos_sum / number_of_sv_in_object);
+
+    //Camera coordenates generator
+
+    Eigen::Matrix<float, 3, 1> initial_camera_position_vector;
+    initial_camera_position_vector << sphere_radius * sin(average_theta) * cos(average_phi),
+        sphere_radius * sin(average_theta) * sin(average_phi),
+        sphere_radius * cos(average_theta);
+
+        return initial_camera_position_vector;
     }
 } // namespace DEF_OBJ_TRACK

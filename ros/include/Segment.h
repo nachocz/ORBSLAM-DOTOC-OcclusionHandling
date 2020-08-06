@@ -74,6 +74,8 @@ namespace DEF_OBJ_TRACK
         std::map<uint32_t, Eigen::Matrix<float, 3, 1>> normalsToSphereIntersectionPoints(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius);
         std::map<uint32_t, Eigen::Matrix<float, 3, 1>> centroidsToOcclussorRays(pcl::visualization::PCLVisualizer::Ptr viewer, const double &sphere_radius, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject);
 
+        Eigen::Matrix<float,1,3> computeIdealOptimalCameraPosition( const double &sphere_radius, std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections);
+
     public:
         //Main structure of a Segment
 
