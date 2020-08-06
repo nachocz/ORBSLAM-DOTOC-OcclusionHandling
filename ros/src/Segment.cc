@@ -209,7 +209,7 @@ void Segment::computeLargestDistanceToCamera(
       maxdistance = sv_centroid_position_camera_ref(2);
     }
   }
-  max_distance_camera_to_object_ = maxdistance;
+  max_distance_camera_to_object_ = maxdistance*0.9;
 }
 
 bool Segment::isItInOcclusionsDepthRange(pcl::PointXYZRGBA sv_centroid) {
@@ -1086,7 +1086,7 @@ void Segment::OcclusionVisualChecking(
 
 std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
 Segment::normalsToSphereIntersectionPoints(
-    pcl::visualization::PCLVisualizer::Ptr viewer,
+    bool visualize_rays, pcl::visualization::PCLVisualizer::Ptr viewer,
     const double &sphere_radius) {
   std::map<uint32_t, Eigen::Matrix<float, 3, 1>> object_sphere_intersections;
 
@@ -1177,13 +1177,16 @@ Segment::normalsToSphereIntersectionPoints(
   // cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
 
   // UNCOMENT TO VISUALIZE SPHERE RAYS
-  viewer->addPointCloudNormals<PointNTSuperVoxel>(
-      visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
-  viewer->setPointCloudRenderingProperties(
-      pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0,
-      "visualization_rays");
-  viewer->setPointCloudRenderingProperties(
-      pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
+  if (visualize_rays) {
+
+    viewer->addPointCloudNormals<PointNTSuperVoxel>(
+        visualization_of_sphere_rays, 1, 1.0f, "visualization_rays");
+    viewer->setPointCloudRenderingProperties(
+        pcl::visualization::PCL_VISUALIZER_COLOR, 0.0, 0.0, 1.0,
+        "visualization_rays");
+    viewer->setPointCloudRenderingProperties(
+        pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1, "visualization_rays");
+  }
 
   return object_sphere_intersections;
 }
@@ -1392,9 +1395,8 @@ Segment::computePerpendicularVector(Eigen::Matrix<float, 1, 3> v_input) {
   int number_of_non_zero_elements = 0;
   for (int i = 0; i < 3; i++) {
     if (v_input(i) != 0)
-    number_of_non_zero_elements++;
+      number_of_non_zero_elements++;
   }
-
 
   if (number_of_non_zero_elements == 3) {
     v_perp(0) = 1.0;

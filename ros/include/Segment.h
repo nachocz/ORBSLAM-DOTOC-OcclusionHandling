@@ -88,7 +88,7 @@ public:
 
   // Next Best View with occlusions
   std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
-  normalsToSphereIntersectionPoints(
+  normalsToSphereIntersectionPoints(bool visualize_rays,
       pcl::visualization::PCLVisualizer::Ptr viewer,
       const double &sphere_radius);
   std::map<uint32_t, Eigen::Matrix<float, 3, 1>>

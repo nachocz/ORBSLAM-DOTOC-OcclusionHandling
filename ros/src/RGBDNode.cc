@@ -1184,34 +1184,234 @@ void RGBDNode::computeOptimalCameraLocation(
     // NewObject->computeDesiredPositionVector();
     // NewObject->computeAngularError();
     // NewObject->computePositionError();
-
     std::map<uint32_t, VectorEigen>
-        object_sphere_intersections_VECTORS_world_ref =
-            NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
-    std::map<uint32_t, VectorEigen>
-        occlusion_sphere_intersections_VECTORS_world_ref =
-            HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius,
-                                                     NewObject);
-
-    int number_of_object_sphere_points = NewObject->number_of_sv_in_segment_;
-    int number_of_occlusion_sphere_points =
-        (NewObject->number_of_sv_in_segment_) *
-        (HardOcclusions->number_of_sv_in_segment_);
+        initial_object_sphere_intersections_VECTORS_world_ref =
+            NewObject->normalsToSphereIntersectionPoints(true, viewer,
+                                                         sphere_radius);
 
     VectorEigen initial_camera_position_vector_sphere_ref =
         NewObject->computeIdealOptimalCameraPosition(
             viewer, sphere_radius,
-            object_sphere_intersections_VECTORS_world_ref);
+            initial_object_sphere_intersections_VECTORS_world_ref);
+
+    bool there_are_occlusions_nearby = true;
+    float step_size = seed_resolution;
+    float occlusion_radius = seed_resolution;
+    float point_ignoring_radius = sphere_radius;
+    int number_of_iterations = 0;
+    int max_number_of_iterations = 50;
 
     VectorEigen sphere_center;
     sphere_center << NewObject->mass_center_(0), NewObject->mass_center_(1),
         NewObject->mass_center_(2);
 
-    VectorEigen initial_camera_position_vector_world_ref =
-        initial_camera_position_vector_sphere_ref + sphere_center;
+    VectorEigen new_camera_position_world_referenced;
+    VectorEigen initial_camera_position_vector_world_ref;
 
-    VectorEigen W_vector =
-        sphere_center - initial_camera_position_vector_world_ref;
+    while ((there_are_occlusions_nearby == 1) &&
+           (number_of_iterations <= max_number_of_iterations)) {
+      number_of_iterations++;
+
+      std::map<uint32_t, VectorEigen>
+          object_sphere_intersections_VECTORS_world_ref =
+              NewObject->normalsToSphereIntersectionPoints(false, viewer,
+                                                           sphere_radius);
+      std::map<uint32_t, VectorEigen>
+          occlusion_sphere_intersections_VECTORS_world_ref =
+              HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius,
+                                                       NewObject);
+
+      int number_of_object_sphere_points = NewObject->number_of_sv_in_segment_;
+      int number_of_occlusion_sphere_points =
+          (NewObject->number_of_sv_in_segment_) *
+          (HardOcclusions->number_of_sv_in_segment_);
+
+      if (number_of_iterations > 1) {
+        initial_camera_position_vector_world_ref =
+            new_camera_position_world_referenced;
+      } else {
+        initial_camera_position_vector_world_ref =
+            initial_camera_position_vector_sphere_ref + sphere_center;
+      }
+
+      VectorEigen W_vector =
+          sphere_center - initial_camera_position_vector_world_ref;
+
+      W_vector = W_vector.normalized();
+
+      VectorEigen U_vector = NewObject->computePerpendicularVector(W_vector);
+
+      U_vector = U_vector.normalized();
+
+      VectorEigen V_vector = W_vector.cross(U_vector);
+      V_vector = V_vector.normalized();
+
+      // CAMERA EXTRINSICS CALCULATION:
+
+      Eigen::Matrix<float, 3, 3> R_extrinsics;
+      R_extrinsics << U_vector.transpose(), V_vector.transpose(),
+          W_vector.transpose();
+
+      VectorEigen t_extrinsics;
+      t_extrinsics << (-1 * R_extrinsics) *
+                          initial_camera_position_vector_world_ref;
+
+      Eigen::Matrix<float, 3, 4> Rt_extrinsics;
+      Rt_extrinsics << R_extrinsics, t_extrinsics;
+
+      // UNITARY SPHERE PLANE MODEL CREATION
+
+      // Object plane points
+      std::map<uint32_t, VectorEigen> object_3D_plane_points,
+          occlusions_3D_plane_points;
+
+      std::map<uint32_t, VectorEigen> object_2D_plane_points,
+          occlusions_2D_plane_points;
+
+      VectorEigen p_zero_vector = initial_camera_position_vector_world_ref;
+
+      VectorEigen l_zero_vector = sphere_center;
+
+      VectorEigen plane_normal_vector =
+          sphere_center - initial_camera_position_vector_world_ref;
+
+      for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i) {
+
+        float x = object_sphere_intersections_VECTORS_world_ref[i + 1](0);
+        float y = object_sphere_intersections_VECTORS_world_ref[i + 1](1);
+        float z = object_sphere_intersections_VECTORS_world_ref[i + 1](2);
+
+        VectorEigen l_vector, plane_point;
+        l_vector << x, y, z;
+
+        VectorEigen temp_vector = p_zero_vector - l_zero_vector;
+        Eigen::Matrix<float, 1, 3> temp_vector2 = temp_vector.transpose();
+        Eigen::Matrix<float, 1, 3> l_vector2 = l_vector.transpose();
+
+        float a, b, d;
+        a = (temp_vector2 * plane_normal_vector);
+        b = (l_vector2 * plane_normal_vector);
+        d = a / b;
+        plane_point = l_zero_vector + l_vector * d;
+        object_3D_plane_points[i + 1] = plane_point;
+
+        Eigen::Matrix<float, 4, 1> plane_point_extended;
+        plane_point_extended << plane_point, 1;
+        object_2D_plane_points[i + 1] = Rt_extrinsics * plane_point_extended;
+
+        if (number_of_iterations == 1) {
+          std::ostringstream cube_number;
+          cube_number << "cube_number_" << i;
+          float cubeSize = 0.004;
+          viewer->addCube(plane_point(0) - cubeSize, plane_point(0) + cubeSize,
+                          plane_point(1) - cubeSize, plane_point(1) + cubeSize,
+                          plane_point(2) - cubeSize, plane_point(2) + cubeSize,
+                          0.0, 1.0, 0.0, cube_number.str());
+        }
+      }
+      // Occlusion plane points
+
+      for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
+        float x = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](0);
+        float y = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](1);
+        float z = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](2);
+
+        VectorEigen l_vector, plane_point;
+        l_vector << x, y, z;
+
+        VectorEigen temp_vector = p_zero_vector - l_zero_vector;
+        Eigen::Matrix<float, 1, 3> temp_vector2 = temp_vector.transpose();
+        Eigen::Matrix<float, 1, 3> l_vector2 = l_vector.transpose();
+
+        float a, b, d;
+        a = (temp_vector2 * plane_normal_vector);
+        b = (l_vector2 * plane_normal_vector);
+        d = a / b;
+        plane_point = l_zero_vector + l_vector * d;
+        occlusions_3D_plane_points[i + 1] = plane_point;
+        Eigen::Matrix<float, 4, 1> plane_point_extended;
+        plane_point_extended << plane_point, 1;
+        occlusions_2D_plane_points[i + 1] =
+            Rt_extrinsics * plane_point_extended;
+
+        if (number_of_iterations == 1) {
+          std::ostringstream cube_number;
+          cube_number << "cube_number_occlusor_" << i;
+          float cubeSize = 0.004;
+          viewer->addCube(plane_point(0) - cubeSize, plane_point(0) + cubeSize,
+                          plane_point(1) - cubeSize, plane_point(1) + cubeSize,
+                          plane_point(2) - cubeSize, plane_point(2) + cubeSize,
+                          1.0, 0.0, 0.0, cube_number.str());
+        }
+      }
+
+      // CALCULATING NEXT MOVING STEP
+
+      int number_of_occlusions_nearby = 0;
+      Eigen::Matrix<float, 2, 1> summatory_vector;
+
+      for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
+        Eigen::Matrix<float, 2, 1> point_2D_coord;
+        point_2D_coord << occlusions_2D_plane_points[i + 1](0),
+            occlusions_2D_plane_points[i + 1](1);
+
+        if (point_2D_coord.norm() <= occlusion_radius) {
+          number_of_occlusions_nearby++;
+        }
+        if (point_2D_coord.norm() <= point_ignoring_radius) {
+          summatory_vector = -point_2D_coord;
+        }
+      }
+
+      if (number_of_occlusions_nearby == 0) {
+        there_are_occlusions_nearby = false;
+      } else {
+        summatory_vector = summatory_vector.normalized();
+        summatory_vector = step_size * summatory_vector;
+
+        Eigen::Matrix<float, 4, 1> new_camera_position_plane_referenced;
+        new_camera_position_plane_referenced << summatory_vector, 0, 1;
+
+        Eigen::Matrix<float, 3, 3> R_extrinsics_inv;
+        R_extrinsics_inv = R_extrinsics.transpose();
+        Eigen::Matrix<float, 3, 1> t_inv;
+        t_inv = -1 * R_extrinsics_inv * t_extrinsics;
+        Eigen::Matrix<float, 3, 4> Rt_extrinsics_inv;
+        Rt_extrinsics_inv << R_extrinsics_inv, t_extrinsics;
+
+        VectorEigen new_camera_position_in_plane_world_ref;
+        new_camera_position_in_plane_world_ref =
+            Rt_extrinsics_inv * new_camera_position_plane_referenced;
+
+        VectorEigen l_vector =
+            sphere_center - new_camera_position_in_plane_world_ref;
+        l_vector = l_vector.normalized();
+
+        VectorEigen o_vector = new_camera_position_in_plane_world_ref;
+
+        float a, b, pre_c, c, d_line_parameter;
+        a = 1.0;
+        b = 2 * l_vector.dot(o_vector - sphere_center);
+        pre_c = (o_vector - sphere_center).norm();
+        c = (pre_c * pre_c) * (sphere_radius * sphere_radius);
+        d_line_parameter = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
+
+        new_camera_position_world_referenced =
+            o_vector + l_vector * d_line_parameter;
+      }
+    }
+
+    cout << "number_of_iterations: " << number_of_iterations << endl;
+
+    // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
+    VectorEigen W_vector;
+
+    if (number_of_iterations > 1) {
+
+      W_vector = sphere_center - new_camera_position_world_referenced;
+    } else {
+      W_vector = sphere_center - initial_camera_position_vector_world_ref;
+    }
 
     W_vector = W_vector.normalized();
 
@@ -1221,13 +1421,17 @@ void RGBDNode::computeOptimalCameraLocation(
 
     VectorEigen V_vector = W_vector.cross(U_vector);
     V_vector = V_vector.normalized();
-
-    // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
     Eigen::Matrix<float, 3, 3> R_matrix;
     R_matrix << U_vector, V_vector, W_vector;
 
     Eigen::Matrix<float, 3, 4> Rt_matrix;
-    Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
+    if (number_of_iterations > 1) {
+
+      Rt_matrix << R_matrix, new_camera_position_world_referenced;
+
+    } else {
+      Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
+    }
 
     Eigen::Affine3f t_objetivo_xy_fijos;
     for (int iAffine = 0; iAffine < 3; iAffine++) {
@@ -1239,102 +1443,6 @@ void RGBDNode::computeOptimalCameraLocation(
 
     viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
                                 "ref_objetivo"); // camera visualization
-
-    // CAMERA EXTRINSICS CALCULATION:
-
-    Eigen::Matrix<float, 3, 3> R_extrinsics;
-    R_extrinsics << U_vector.transpose(), V_vector.transpose(),
-        W_vector.transpose();
-
-    VectorEigen t_extrinsics;
-    t_extrinsics << (-1 * R_extrinsics) *
-                        initial_camera_position_vector_world_ref;
-
-    Eigen::Matrix<float, 3, 4> Rt_extrinsics;
-    Rt_extrinsics << R_extrinsics, t_extrinsics;
-
-    // UNITARY SPHERE PLANE MODEL CREATION
-
-    // Object plane points
-    std::map<uint32_t, VectorEigen> object_3D_plane_points,
-        occlusions_3D_plane_points;
-
-    std::map<uint32_t, VectorEigen> object_2D_plane_points,
-        occlusions_2D_plane_points;
-
-    VectorEigen p_zero_vector = initial_camera_position_vector_world_ref;
-
-    VectorEigen l_zero_vector = sphere_center;
-
-    VectorEigen plane_normal_vector =
-        sphere_center - initial_camera_position_vector_world_ref;
-
-    for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i) {
-
-      float x = object_sphere_intersections_VECTORS_world_ref[i + 1](0);
-      float y = object_sphere_intersections_VECTORS_world_ref[i + 1](1);
-      float z = object_sphere_intersections_VECTORS_world_ref[i + 1](2);
-
-      VectorEigen l_vector, plane_point;
-      l_vector << x, y, z;
-
-      VectorEigen temp_vector = p_zero_vector - l_zero_vector;
-      Eigen::Matrix<float, 1, 3> temp_vector2 = temp_vector.transpose();
-      Eigen::Matrix<float, 1, 3> l_vector2 = l_vector.transpose();
-
-      float a, b, d;
-      a = (temp_vector2 * plane_normal_vector);
-      b = (l_vector2 * plane_normal_vector);
-      d = a / b;
-      plane_point = l_zero_vector + l_vector * d;
-      object_3D_plane_points[i + 1] = plane_point;
-
-      Eigen::Matrix<float, 4, 1> plane_point_extended;
-      plane_point_extended << plane_point, 1;
-      object_2D_plane_points[i + 1] = Rt_extrinsics * plane_point_extended;
-    }
-    // Occlusion plane points
-
-    for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
-      float x = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](0);
-      float y = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](1);
-      float z = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](2);
-
-      VectorEigen l_vector, plane_point;
-      l_vector << x, y, z;
-
-      VectorEigen temp_vector = p_zero_vector - l_zero_vector;
-      Eigen::Matrix<float, 1, 3> temp_vector2 = temp_vector.transpose();
-      Eigen::Matrix<float, 1, 3> l_vector2 = l_vector.transpose();
-
-      float a, b, d;
-      a = (temp_vector2 * plane_normal_vector);
-      b = (l_vector2 * plane_normal_vector);
-      d = a / b;
-      plane_point = l_zero_vector + l_vector * d;
-      occlusions_3D_plane_points[i + 1] = plane_point;
-      Eigen::Matrix<float, 4, 1> plane_point_extended;
-      plane_point_extended << plane_point, 1;
-      occlusions_2D_plane_points[i + 1] = Rt_extrinsics * plane_point_extended;
-    }
-
-    // CALCULATING NEXT MOVING STEP
-
-    int number_of_occlusions_nearby = 0;
-    Eigen::Matrix<float, 2, 1> summatory_vector;
-
-    for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
-      Eigen::Matrix<float, 2, 1> point_2D_coord;
-      point_2D_coord << occlusions_2D_plane_points[i + 1](0),
-          occlusions_2D_plane_points[i + 1](1);
-
-      if (point_2D_coord.norm() <= 2 * seed_resolution) {
-        number_of_occlusions_nearby++;
-      }
-      if (point_2D_coord.norm() <= 2 * sphere_radius) {
-        summatory_vector = -point_2D_coord;
-      }
-    }
 
     // NewObject->optimal_position_ = t_objetivo;
 
