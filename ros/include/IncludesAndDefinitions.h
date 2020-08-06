@@ -89,4 +89,6 @@ typedef pcl::LCCPSegmentation<PointT>::VertexIterator VertexIterator;
 typedef pcl::LCCPSegmentation<PointT>::AdjacencyIterator AdjacencyIterator;
 typedef pcl::LCCPSegmentation<PointT>::EdgeID EdgeID;
 
+typedef Eigen::Matrix<float, 3, 1> VectorEigen;
+
 #endif //PARAMETERS_H

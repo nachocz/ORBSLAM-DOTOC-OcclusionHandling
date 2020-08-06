@@ -1275,7 +1275,7 @@ Segment::centroidsToOcclussorRays(
       visualization_of_sphere_rays->push_back(visualization_rays);
 
       occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j + 1] =
-          antipodes_intersection_point;
+          antipodes_intersection_point - sphere_center;
       // cout << "i * number_of_sv_in_segment_ + j+1: " << i *
       // number_of_sv_in_segment_ + j + 1; cout <<
       // "occlusion_sphere_intersections[i * number_of_sv_in_segment_ + j+1] = "
@@ -1317,8 +1317,8 @@ Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
     float y = object_sphere_intersections_sphere_reference[i + 1](1);
     float z = object_sphere_intersections_sphere_reference[i + 1](2);
 
-    cout << "object_sphere_intersections_sphere_reference[i + 1]" << endl;
-    cout << object_sphere_intersections_sphere_reference[i + 1] << endl;
+    // cout << "object_sphere_intersections_sphere_reference[i + 1]" << endl;
+    // cout << object_sphere_intersections_sphere_reference[i + 1] << endl;
 
     float theta, phi;
 
@@ -1356,8 +1356,8 @@ Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
   average_phi = atan2((phi_sin_sum / number_of_sv_in_object),
                       (phi_cos_sum / number_of_sv_in_object));
 
-  cout << "average_theta: " << average_theta * 360 / (2 * PI) << endl;
-  cout << "average_phi: " << average_phi * 360 / (2 * PI) << endl;
+  // cout << "average_theta: " << average_theta * 360 / (2 * PI) << endl;
+  // cout << "average_phi: " << average_phi * 360 / (2 * PI) << endl;
 
   // Camera coordenates generator
 
@@ -1367,19 +1367,19 @@ Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
       float(sphere_radius) * sin(average_theta) * sin(average_phi),
       float(sphere_radius) * cos(average_theta);
 
-  cout << "initial_camera_position_vector (sphere ref: " << endl;
-  cout << initial_camera_position_vector << endl;
+  // cout << "initial_camera_position_vector (sphere ref: " << endl;
+  // cout << initial_camera_position_vector << endl;
 
-  float cubeSize2 = 0.005;
-  std::stringstream ssCube;
-  ssCube << "skereee2";
-  viewer->addCube(initial_camera_position_vector(0) - cubeSize2,
-                  initial_camera_position_vector(0) + cubeSize2,
-                  initial_camera_position_vector(1) - cubeSize2,
-                  initial_camera_position_vector(1) + cubeSize2,
-                  initial_camera_position_vector(2) - cubeSize2,
-                  initial_camera_position_vector(2) + cubeSize2, 0.0,
-                  1.0, 1.0, ssCube.str());
+  // float cubeSize2 = 0.005;
+  // std::stringstream ssCube;
+  // ssCube << "skereee2";
+  // viewer->addCube(initial_camera_position_vector(0) - cubeSize2,
+  //                 initial_camera_position_vector(0) + cubeSize2,
+  //                 initial_camera_position_vector(1) - cubeSize2,
+  //                 initial_camera_position_vector(1) + cubeSize2,
+  //                 initial_camera_position_vector(2) - cubeSize2,
+  //                 initial_camera_position_vector(2) + cubeSize2, 0.0,
+  //                 1.0, 1.0, ssCube.str());
 
   return initial_camera_position_vector;
 }

@@ -1018,12 +1018,12 @@ void RGBDNode::trackObject(
           // normalWorldRef.normal_y = newNormal.normal_y - newNormal.y;
           // normalWorldRef.normal_z = newNormal.normal_z - newNormal.z;
 
-          // Eigen::Matrix<float, 3, 1> normal_world_reference;
+          // VectorEigen normal_world_reference;
           // normal_world_reference << normalWorldRef.normal_x,
           //     normalWorldRef.normal_y,
           //     normalWorldRef.normal_z;
 
-          // Eigen::Matrix<float, 3, 1> normal_world_reference_normalized;
+          // VectorEigen normal_world_reference_normalized;
           // normal_world_reference_normalized =
           // normal_world_reference.normalized(); float normal_norm =
           // normal_world_reference_normalized.norm(); cout << "normal_norm: "
@@ -1185,57 +1185,115 @@ void RGBDNode::computeOptimalCameraLocation(
     // NewObject->computeAngularError();
     // NewObject->computePositionError();
 
-    std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
+    std::map<uint32_t, VectorEigen>
         object_sphere_intersections_VECTORS_world_ref =
             NewObject->normalsToSphereIntersectionPoints(viewer, sphere_radius);
-    std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
-        occlusion_sphere_intersections =
+    std::map<uint32_t, VectorEigen>
+        occlusion_sphere_intersections_VECTORS_world_ref =
             HardOcclusions->centroidsToOcclussorRays(viewer, sphere_radius,
                                                      NewObject);
 
-    Eigen::Matrix<float, 3, 1> initial_camera_position_vector_sphere_ref =
+    int number_of_object_sphere_points = NewObject->number_of_sv_in_segment_;
+    int number_of_occlusion_sphere_points =
+        (NewObject->number_of_sv_in_segment_) *
+        (HardOcclusions->number_of_sv_in_segment_);
+
+    VectorEigen initial_camera_position_vector_sphere_ref =
         NewObject->computeIdealOptimalCameraPosition(
             viewer, sphere_radius,
             object_sphere_intersections_VECTORS_world_ref);
 
-    Eigen::Matrix<float, 3, 1> sphere_center;
+    VectorEigen sphere_center;
     sphere_center << NewObject->mass_center_(0), NewObject->mass_center_(1),
         NewObject->mass_center_(2);
 
-    Eigen::Matrix<float, 3, 1> initial_camera_position_vector_world_ref =
+    VectorEigen initial_camera_position_vector_world_ref =
         initial_camera_position_vector_sphere_ref + sphere_center;
 
-    cout << "initial_camera_position_vector_world_ref: " << endl
-         << initial_camera_position_vector_world_ref << endl;
-
-    float cubeSize2 = 0.005;
-    std::stringstream ssCube;
-    ssCube << "skereee";
-    viewer->addCube(initial_camera_position_vector_world_ref(0) - cubeSize2,
-                    initial_camera_position_vector_world_ref(0) + cubeSize2,
-                    initial_camera_position_vector_world_ref(1) - cubeSize2,
-                    initial_camera_position_vector_world_ref(1) + cubeSize2,
-                    initial_camera_position_vector_world_ref(2) - cubeSize2,
-                    initial_camera_position_vector_world_ref(2) + cubeSize2,
-                    0.0, 1.0, 0.0, ssCube.str());
-
-    Eigen::Matrix<float, 3, 1> W_vector =
+    VectorEigen W_vector =
         sphere_center - initial_camera_position_vector_world_ref;
 
     W_vector = W_vector.normalized();
 
-    Eigen::Matrix<float, 3, 1> U_vector =
-        NewObject->computePerpendicularVector(W_vector);
+    VectorEigen U_vector = NewObject->computePerpendicularVector(W_vector);
 
     U_vector = U_vector.normalized();
 
-    Eigen::Matrix<float, 3, 1> V_vector = W_vector.cross(U_vector);
+    VectorEigen V_vector = W_vector.cross(U_vector);
     V_vector = V_vector.normalized();
 
+    // CAMERA EXTRINSICS CALCULATION:
+
+    Eigen::Matrix<float, 3, 3> R_extrinsics;
+    R_extrinsics << U_vector.transpose(), V_vector.transpose(),
+        W_vector.transpose();
+
+    VectorEigen t_extrinsics;
+    t_extrinsics << (-1 * R_extrinsics) *
+                        initial_camera_position_vector_world_ref;
+
+    Eigen::Matrix<float, 3, 4> Rt_extrinsics;
+    Rt_extrinsics << R_extrinsics, t_extrinsics;
+
+    // UNITARY SPHERE PLANE MODEL CREATION
+
+    // Object plane points
+    std::map<uint32_t, VectorEigen> object_3D_plane_points,
+        occlusions_3D_plane_points;
+
+    VectorEigen p_zero_vector = initial_camera_position_vector_world_ref;
+
+    VectorEigen l_zero_vector = sphere_center;
+
+    VectorEigen plane_normal_vector =
+        sphere_center - initial_camera_position_vector_world_ref;
+
+    for (int i = 0; i < NewObject->number_of_sv_in_segment_; ++i) {
+
+      float x = object_sphere_intersections_VECTORS_world_ref[i + 1](0);
+      float y = object_sphere_intersections_VECTORS_world_ref[i + 1](1);
+      float z = object_sphere_intersections_VECTORS_world_ref[i + 1](2);
+
+      VectorEigen l_vector, plane_point;
+      l_vector << x, y, z;
+
+      VectorEigen temp_vector = p_zero_vector - l_zero_vector;
+      Eigen::Matrix<float, 1, 3> temp_vector2 = temp_vector.transpose();
+      Eigen::Matrix<float, 1, 3> l_vector2 = l_vector.transpose();
+
+      float a, b, d;
+      a = (temp_vector2 * plane_normal_vector);
+      b = (l_vector2 * plane_normal_vector);
+      d = a / b;
+      plane_point = l_zero_vector + l_vector * d;
+      object_3D_plane_points[i + 1] = plane_point;
+    }
+    // Occlusion plane points
+
+    for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
+      float x = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](0);
+      float y = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](1);
+      float z = occlusion_sphere_intersections_VECTORS_world_ref[i + 1](2);
+
+      VectorEigen l_vector, plane_point;
+      l_vector << x, y, z;
+
+      VectorEigen temp_vector = p_zero_vector - l_zero_vector;
+      Eigen::Matrix<float, 1, 3> temp_vector2 = temp_vector.transpose();
+      Eigen::Matrix<float, 1, 3> l_vector2 = l_vector.transpose();
+
+      float a, b, d;
+      a = (temp_vector2 * plane_normal_vector);
+      b = (l_vector2 * plane_normal_vector);
+      d = a / b;
+      plane_point = l_zero_vector + l_vector * d;
+      occlusions_3D_plane_points[i + 1] = plane_point;
+    }
+    // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
     Eigen::Matrix<float, 3, 3> R_matrix;
     R_matrix << U_vector, V_vector, W_vector;
 
-    Eigen::Matrix<float, 3, 4> Rt_matrix; // camera representation
+    Eigen::Matrix<float, 3, 4> Rt_matrix;
     Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
 
     Eigen::Affine3f t_objetivo_xy_fijos;
@@ -1246,27 +1304,21 @@ void RGBDNode::computeOptimalCameraLocation(
       }
     }
 
-    cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
-    cout << "U_vector: " << U_vector << endl;
-    cout << "V_vector: " << V_vector << endl;
-    cout << "W_vector: " << W_vector << endl;
-
-    cout << "Rt_matrix: " << Rt_matrix << endl;
-
     viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
                                 "ref_objetivo"); // camera visualization
+
     // NewObject->optimal_position_ = t_objetivo;
 
     // visualization of camera and errors on viewer
-    viewer->addPointCloudNormals<PointNTSuperVoxel>(
-        NewObject->visualization_of_vectors_cloud_, 1, 1.0f,
-        "visualization_of_vectors_cloud_");
-    viewer->setPointCloudRenderingProperties(
-        pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0,
-        "visualization_of_vectors_cloud_");
-    viewer->setPointCloudRenderingProperties(
-        pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1,
-        "visualization_of_vectors_cloud_");
+    // viewer->addPointCloudNormals<PointNTSuperVoxel>(
+    //     NewObject->visualization_of_vectors_cloud_, 1, 1.0f,
+    //     "visualization_of_vectors_cloud_");
+    // viewer->setPointCloudRenderingProperties(
+    //     pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0,
+    //     "visualization_of_vectors_cloud_");
+    // viewer->setPointCloudRenderingProperties(
+    //     pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1,
+    //     "visualization_of_vectors_cloud_");
 
     // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
     // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
@@ -1289,11 +1341,12 @@ void RGBDNode::computeOptimalCameraLocation(
     // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
     // OLD STUF OLD STUF
 
-    // Eigen::Matrix<float, 3, 1> sphere_center;
-    // sphere_center << NewObject->mass_center_(0), NewObject->mass_center_(1),
+    // VectorEigen sphere_center;
+    // sphere_center << NewObject->mass_center_(0),
+    // NewObject->mass_center_(1),
     //     NewObject->mass_center_(2);
 
-    // Eigen::Matrix<float, 3, 1> normal_vector_unitary;
+    // VectorEigen normal_vector_unitary;
     // normal_vector_unitary << sphere_center(0) -
     //                              initial_camera_position_vector(0),
     //     sphere_center(1) - initial_camera_position_vector(1),
@@ -1301,7 +1354,7 @@ void RGBDNode::computeOptimalCameraLocation(
 
     // normal_vector_unitary = normal_vector_unitary.normalized();
 
-    // Eigen::Matrix<float, 3, 1> U_vector; // 2nd basis vector
+    // VectorEigen U_vector; // 2nd basis vector
     // U_vector << float(1.0),
     //     float(0.0), //(1.0)
     //     float((-normal_vector_unitary(0)) /
@@ -1311,11 +1364,12 @@ void RGBDNode::computeOptimalCameraLocation(
     //                    /// normal_vector_unitary(2)
     // U_vector = U_vector.normalized();
 
-    // Eigen::Matrix<float, 3, 1> V_vector; // 3rd basis vector
+    // VectorEigen V_vector; // 3rd basis vector
     // V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
 
-    // Eigen::Matrix<float, 3, 1>
-    //     W_vector; // Comprobation vector, it must be = normal_vector_unitary
+    // VectorEigen
+    //     W_vector; // Comprobation vector, it must be =
+    //     normal_vector_unitary
     // W_vector = (U_vector.cross(V_vector)).normalized();
 
     // Eigen::Matrix<float, 3, 3> R_matrix; // Rwc (camera to world)
@@ -1390,16 +1444,16 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(
             static_cast<float>(parameters[4 * iAffine + jAffine]);
       }
     }
-    Eigen::Matrix<float, 3, 1> position_vector;
+    VectorEigen position_vector;
     position_vector << t_objetivo(0, 3), t_objetivo(1, 3), t_objetivo(2, 3);
 
-    Eigen::Matrix<float, 3, 1> normal_vector_unitary;
+    VectorEigen normal_vector_unitary;
     normal_vector_unitary << static_cast<float>(parameters[2]),
         t_objetivo(1, 2), t_objetivo(2, 2);
 
     normal_vector_unitary = normal_vector_unitary.normalized();
 
-    Eigen::Matrix<float, 3, 1> U_vector; // 2nd basis vector
+    VectorEigen U_vector; // 2nd basis vector
     U_vector << float(1.0),
         float(0.0), //(1.0)
         float((-normal_vector_unitary(0)) /
@@ -1408,10 +1462,10 @@ void RGBDNode::computeOptimalCameraLocationNoOcclusions(
                        /// normal_vector_unitary(2)
     U_vector = U_vector.normalized();
 
-    Eigen::Matrix<float, 3, 1> V_vector; // 3rd basis vector
+    VectorEigen V_vector; // 3rd basis vector
     V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
 
-    Eigen::Matrix<float, 3, 1>
+    VectorEigen
         W_vector; // Comprobation vector, it must be = normal_vector_unitary
     W_vector = (U_vector.cross(V_vector)).normalized();
 
