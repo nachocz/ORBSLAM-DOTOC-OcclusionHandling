@@ -1195,9 +1195,9 @@ void RGBDNode::computeOptimalCameraLocation(
             initial_object_sphere_intersections_VECTORS_world_ref);
 
     bool there_are_occlusions_nearby = true;
-    float step_size = seed_resolution;
-    float occlusion_radius = seed_resolution;
-    float point_ignoring_radius = sphere_radius;
+    float step_size = seed_resolution/2;
+    float occlusion_radius = seed_resolution*5;
+    float point_ignoring_radius = sphere_radius*1;
     int number_of_iterations = 0;
     int max_number_of_iterations = 50;
 
@@ -1401,7 +1401,9 @@ void RGBDNode::computeOptimalCameraLocation(
       }
     }
 
-    cout << "number_of_iterations: " << number_of_iterations << endl;
+    if (number_of_iterations > 1) {
+      cout << "number_of_iterations: " << number_of_iterations << endl;
+    }
 
     // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
     VectorEigen W_vector;
