@@ -1159,17 +1159,17 @@ Segment::normalsToSphereIntersectionPoints(
     visualization_rays.normal_y = intersection_point(1) - sphere_center(1);
     visualization_rays.normal_z = intersection_point(2) - sphere_center(2);
 
-    Eigen::Matrix<float, 3, 1> intersection_point_global_ref;
+    Eigen::Matrix<float, 3, 1> intersection_point_sphere_ref;
 
-    intersection_point_global_ref << intersection_point(0) - sphere_center(0),
-        intersection_point(1) - sphere_center(1),
-        intersection_point(2) - sphere_center(2);
+    intersection_point_sphere_ref << intersection_point(0) - sphere_center(0),
+        intersection_point(1) - sphere_center(0),
+        intersection_point(2) - sphere_center(0);
 
     visualization_of_sphere_rays->push_back(visualization_rays);
 
     // cout << "vector_module_checking: " << vector_module_checking.norm() <<
     // endl; cout << "sphere_radius: " << sphere_radius << endl;
-    object_sphere_intersections[i + 1] = intersection_point_global_ref;
+    object_sphere_intersections[i + 1] = intersection_point_sphere_ref;
 
     // cout << "object_sphere_intersections[i + 1] = " <<
     // object_sphere_intersections[i + 1] << endl;
@@ -1296,41 +1296,40 @@ Segment::centroidsToOcclussorRays(
 
 Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
     const double &sphere_radius, std::map<uint32_t, Eigen::Matrix<float, 3, 1>>
-                                     object_sphere_intersections) {
-  double number_of_sv_in_object = number_of_sv_in_segment_;
+                                     object_sphere_intersections_sphere_reference) {
+  int number_of_sv_in_object = number_of_sv_in_segment_;
   // double number_of_sv_occluding = HardOcclusions->number_of_sv_in_segment_;
 
-  double average_theta = 0.0;
-  double average_phi = 0.0;
+  float average_theta,average_phi;
 
-  double theta_sin_sum = 0.0;
-  double theta_cos_sum = 0.0;
-  double phi_sin_sum = 0.0;
-  double phi_cos_sum = 0.0;
+  float theta_sin_sum = 0.0;
+  float theta_cos_sum = 0.0;
+  float phi_sin_sum = 0.0;
+  float phi_cos_sum = 0.0;
 
   for (int i = 0; i < number_of_sv_in_segment_; ++i) {
 
-    float x = object_sphere_intersections[i + 1](0);
-    float y = object_sphere_intersections[i + 1](1);
-    float z = object_sphere_intersections[i + 1](2);
+    float x = object_sphere_intersections_sphere_reference[i + 1](0);
+    float y = object_sphere_intersections_sphere_reference[i + 1](1);
+    float z = object_sphere_intersections_sphere_reference[i + 1](2);
 
     float theta, phi;
 
     if (z > 0) {
       theta = atan(sqrt(x * x + y * y) / z);
-    } else if (z = 0) {
+    } else if (z == 0) {
       theta = PI / 2;
     } else {
       theta = PI + atan(sqrt(x * x + y * y) / z);
     }
 
-    if (x > 0 && y > 0) // 1st Q
+    if ((x > 0) && (y > 0)) // 1st Q
     {
       phi = atan(y / x);
-    } else if (x > 0 && y < 0) // 4º Q
+    } else if ((x > 0) && (y < 0)) // 4º Q
     {
       phi = 2 * PI + atan(y / x);
-    } else if (x = 0) {
+    } else if (x == 0) {
       phi = (PI / 2) * ((y > 0) ? 1 : ((y < 0) ? -1 : 0)); //...sign(y)
     } else if (x < 0) {
       phi = PI + atan(y / x); // 2nd and 3rd Q
@@ -1345,10 +1344,10 @@ Eigen::Matrix<float, 1, 3> Segment::computeIdealOptimalCameraPosition(
 
   // mean of angles
 
-  average_theta = atan2(theta_sin_sum / number_of_sv_in_object,
-                        theta_cos_sum / number_of_sv_in_object);
-  average_phi = atan2(phi_sin_sum / number_of_sv_in_object,
-                      phi_cos_sum / number_of_sv_in_object);
+  average_theta = atan2((theta_sin_sum / number_of_sv_in_object),
+                        (theta_cos_sum / number_of_sv_in_object));
+  average_phi = atan2((phi_sin_sum / number_of_sv_in_object),
+                      (phi_cos_sum / number_of_sv_in_object));
 
   // Camera coordenates generator
 
