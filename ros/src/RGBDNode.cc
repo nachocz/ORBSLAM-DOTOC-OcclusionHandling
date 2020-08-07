@@ -1381,6 +1381,7 @@ void RGBDNode::computeOptimalCameraLocation(
 
       int number_of_occlusions_nearby = 0;
       Eigen::Matrix<float, 2, 1> summatory_vector;
+      summatory_vector << 0, 0;
 
       for (int i = 0; i < number_of_occlusion_sphere_points; ++i) {
         Eigen::Matrix<float, 2, 1> point_2D_coord;
@@ -1428,17 +1429,26 @@ void RGBDNode::computeOptimalCameraLocation(
             sphere_center - new_camera_position_in_plane_world_ref;
         l_vector = l_vector.normalized();
 
-        VectorEigen o_vector = new_camera_position_in_plane_world_ref;
+        VectorEigen a_vector = new_camera_position_in_plane_world_ref;
+        VectorEigen b_vector = sphere_center - a_vector;
+        b_vector = b_vector.normalized();
+        b_vector = sphere_radius * b_vector;
+        new_camera_position_world_referenced = sphere_center + (-b_vector);
 
-        float a, b, pre_c, c, d_line_parameter;
-        a = 1.0;
-        b = 2 * l_vector.dot(o_vector - sphere_center);
-        pre_c = (o_vector - sphere_center).norm();
-        c = (pre_c * pre_c) * (sphere_radius * sphere_radius);
-        d_line_parameter = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
+        // VectorEigen o_vector = new_camera_position_in_plane_world_ref;
 
-        new_camera_position_world_referenced =
-            o_vector + l_vector * d_line_parameter;
+        // float a, b, pre_c, c, d_line_parameter;
+        // a = 1.0;
+        // b = 2 * (l_vector.dot(o_vector - sphere_center));
+        // pre_c = (o_vector - sphere_center).norm();
+        // c = (pre_c * pre_c) * (sphere_radius * sphere_radius);
+        // d_line_parameter = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
+
+        // new_camera_position_world_referenced =
+        //     o_vector + l_vector * d_line_parameter;
+
+        cout << "new_camera_position_world_referenced: "
+             << new_camera_position_world_referenced << endl;
       }
     }
 
