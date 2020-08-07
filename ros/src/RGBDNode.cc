@@ -221,6 +221,8 @@ void RGBDNode::ImageCallback(const sensor_msgs::ImageConstPtr &msgRGB,
                   "number_of_frames text");
   myfile << frame_count << ", ";
 
+  cout << "FRAME NUMBER FRAME NUMBER FRAME NUMBER: " << frame_count << endl;
+
   // Copy the ros image message to cv::Mat.
   cv_bridge::CvImageConstPtr cv_ptrRGB;
   try {
@@ -378,7 +380,8 @@ void RGBDNode::ImageCallback(const sensor_msgs::ImageConstPtr &msgRGB,
 
       auto start_Optimization_time = std::chrono::system_clock::now();
 
-      computeOptimalCameraLocation(segment_manager.segment_list_now_[1],
+      computeOptimalCameraLocation(frame_count,
+                                   segment_manager.segment_list_now_[1],
                                    segment_manager.segment_list_now_[3],
                                    segment_manager.segment_list_now_[4]);
 
@@ -1155,7 +1158,7 @@ void RGBDNode::trackObject(
 }
 
 void RGBDNode::computeOptimalCameraLocation(
-    std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject,
+    int number_of_frame, std::shared_ptr<DEF_OBJ_TRACK::Segment> NewObject,
     std::shared_ptr<DEF_OBJ_TRACK::Segment> Occlusions,
     std::shared_ptr<DEF_OBJ_TRACK::Segment> HardOcclusions) {
   // BestNextView
@@ -1477,25 +1480,78 @@ void RGBDNode::computeOptimalCameraLocation(
     Eigen::Matrix<float, 3, 3> R_matrix;
     R_matrix << U_vector, V_vector, W_vector;
 
-    Eigen::Matrix<float, 3, 4> Rt_matrix;
+    Eigen::Matrix<float, 3, 4> Rt_final_matrix;
     if (number_of_iterations > 1) {
 
-      Rt_matrix << R_matrix, new_camera_position_world_referenced;
+      Rt_final_matrix << R_matrix, new_camera_position_world_referenced;
 
     } else {
-      Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
+      Rt_final_matrix << R_matrix, initial_camera_position_vector_world_ref;
     }
 
     Eigen::Affine3f t_objetivo_xy_fijos;
     for (int iAffine = 0; iAffine < 3; iAffine++) {
       for (int jAffine = 0; jAffine < 4; jAffine++) {
         t_objetivo_xy_fijos(iAffine, jAffine) =
-            static_cast<float>(Rt_matrix(iAffine, jAffine));
+            static_cast<float>(Rt_final_matrix(iAffine, jAffine));
       }
     }
 
     viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
                                 "ref_objetivo"); // camera visualization
+
+    if (number_of_iterations > 1) {
+
+      VectorEigen initial_optimal_camera_position =
+          initial_camera_position_vector_sphere_ref + sphere_center;
+      cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+
+      cout << "MATLAB INFORMATION OF FRAME " << number_of_frame << endl;
+
+      cout << "number of iterations" << endl;
+      cout << number_of_iterations << endl;
+
+      cout << "Initial optimal camera position" << endl;
+
+      VectorEigen W_vector = sphere_center - initial_optimal_camera_position;
+
+      W_vector = W_vector.normalized();
+
+      VectorEigen U_vector = NewObject->computePerpendicularVector(W_vector);
+
+      U_vector = U_vector.normalized();
+
+      VectorEigen V_vector = W_vector.cross(U_vector);
+      V_vector = V_vector.normalized();
+
+      // CAMERA VISUALIZATION:
+
+      Eigen::Matrix<float, 3, 3> R_matrix;
+      R_matrix << U_vector, V_vector, W_vector;
+
+      Eigen::Matrix<float, 3, 4> Rt_matrix;
+
+      Rt_matrix << R_matrix, initial_optimal_camera_position;
+
+      cout << Rt_matrix << endl;
+
+      cout << "Final optimal camera position" << endl;
+      cout << Rt_final_matrix << endl;
+
+      cout << "Sphere center" << endl;
+      cout << sphere_center.transpose() << endl;
+
+      cout << "initial_object_sphere_intersections_VECTORS_world_ref" << endl;
+
+      for (int i = 0; i < NewObject->number_of_sv_in_segment_; i++) {
+        cout << initial_object_sphere_intersections_VECTORS_world_ref[i + 1]
+                    .transpose()
+             << ";" << endl;
+      }
+      cout << "END OF MATLAB INFORMATION:" << endl;
+
+      cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+    }
 
     // // visualization of camera and errors on viewer
     // viewer->addPointCloudNormals<PointNTSuperVoxel>(
