@@ -465,6 +465,11 @@ void RGBDNode::ImageCallback(const sensor_msgs::ImageConstPtr &msgRGB,
   viewer->removeCoordinateSystem("ref_objetivo");
   viewer->removeCoordinateSystem("refObject");
   // plotter->clearPlots();
+  for (int i = 0; i < 200; i++) {
+    std::ostringstream camera_number;
+    camera_number << "camera_number_" << i;
+    viewer->removeCoordinateSystem(camera_number.str());
+  }
 
   frame_count++;
 }
@@ -1195,11 +1200,16 @@ void RGBDNode::computeOptimalCameraLocation(
             initial_object_sphere_intersections_VECTORS_world_ref);
 
     bool there_are_occlusions_nearby = true;
-    float step_size = seed_resolution/2;
-    float occlusion_radius = seed_resolution*5;
-    float point_ignoring_radius = sphere_radius*1;
+
+    float step_size = seed_resolution / 2;
+    float occlusion_radius = seed_resolution * 2;
+    float point_ignoring_radius = sphere_radius * 1;
     int number_of_iterations = 0;
     int max_number_of_iterations = 50;
+
+    cout << "step_size: " << step_size << endl;
+    cout << "occlusion_radius: " << occlusion_radius << endl;
+    cout << "point_ignoring_radius: " << point_ignoring_radius << endl;
 
     VectorEigen sphere_center;
     sphere_center << NewObject->mass_center_(0), NewObject->mass_center_(1),
@@ -1245,6 +1255,28 @@ void RGBDNode::computeOptimalCameraLocation(
 
       VectorEigen V_vector = W_vector.cross(U_vector);
       V_vector = V_vector.normalized();
+
+      // CAMERA VISUALIZATION:
+
+      Eigen::Matrix<float, 3, 3> R_matrix;
+      R_matrix << U_vector, V_vector, W_vector;
+
+      Eigen::Matrix<float, 3, 4> Rt_matrix;
+
+      Rt_matrix << R_matrix, initial_camera_position_vector_world_ref;
+
+      std::ostringstream camera_number;
+      camera_number << "camera_number_" << number_of_iterations;
+      Eigen::Affine3f t_objetivo_xy_fijos;
+      for (int iAffine = 0; iAffine < 3; iAffine++) {
+        for (int jAffine = 0; jAffine < 4; jAffine++) {
+          t_objetivo_xy_fijos(iAffine, jAffine) =
+              static_cast<float>(Rt_matrix(iAffine, jAffine));
+        }
+      }
+
+      viewer->addCoordinateSystem(0.05, t_objetivo_xy_fijos,
+                                  camera_number.str()); // camera visualization
 
       // CAMERA EXTRINSICS CALCULATION:
 
@@ -1359,15 +1391,24 @@ void RGBDNode::computeOptimalCameraLocation(
           number_of_occlusions_nearby++;
         }
         if (point_2D_coord.norm() <= point_ignoring_radius) {
-          summatory_vector = -point_2D_coord;
+          summatory_vector = summatory_vector - point_2D_coord;
         }
       }
+      cout << "number_of_occlusions_nearby: " << number_of_occlusions_nearby
+           << endl;
 
       if (number_of_occlusions_nearby == 0) {
         there_are_occlusions_nearby = false;
       } else {
+
+        cout << "summatory_vector: " << endl << summatory_vector << endl;
         summatory_vector = summatory_vector.normalized();
+        cout << "summatory_vector.normalized(): " << endl
+             << summatory_vector << endl;
+
         summatory_vector = step_size * summatory_vector;
+        cout << "step_size * summatory_vector: " << endl
+             << summatory_vector << endl;
 
         Eigen::Matrix<float, 4, 1> new_camera_position_plane_referenced;
         new_camera_position_plane_referenced << summatory_vector, 0, 1;
@@ -1377,7 +1418,7 @@ void RGBDNode::computeOptimalCameraLocation(
         Eigen::Matrix<float, 3, 1> t_inv;
         t_inv = -1 * R_extrinsics_inv * t_extrinsics;
         Eigen::Matrix<float, 3, 4> Rt_extrinsics_inv;
-        Rt_extrinsics_inv << R_extrinsics_inv, t_extrinsics;
+        Rt_extrinsics_inv << R_extrinsics_inv, t_inv;
 
         VectorEigen new_camera_position_in_plane_world_ref;
         new_camera_position_in_plane_world_ref =
@@ -1402,7 +1443,7 @@ void RGBDNode::computeOptimalCameraLocation(
     }
 
     if (number_of_iterations > 1) {
-      cout << "number_of_iterations: " << number_of_iterations << endl;
+      cout << "NUMBER_OF_ITERATIONS: " << number_of_iterations << endl;
     }
 
     // CAMERA REPRESENTATION Rt MATRIX CALCULATION:
@@ -1445,89 +1486,6 @@ void RGBDNode::computeOptimalCameraLocation(
 
     viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
                                 "ref_objetivo"); // camera visualization
-
-    // NewObject->optimal_position_ = t_objetivo;
-
-    // visualization of camera and errors on viewer
-    // viewer->addPointCloudNormals<PointNTSuperVoxel>(
-    //     NewObject->visualization_of_vectors_cloud_, 1, 1.0f,
-    //     "visualization_of_vectors_cloud_");
-    // viewer->setPointCloudRenderingProperties(
-    //     pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0,
-    //     "visualization_of_vectors_cloud_");
-    // viewer->setPointCloudRenderingProperties(
-    //     pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 1,
-    //     "visualization_of_vectors_cloud_");
-
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF OLD STUF
-    // OLD STUF OLD STUF
-
-    // VectorEigen sphere_center;
-    // sphere_center << NewObject->mass_center_(0),
-    // NewObject->mass_center_(1),
-    //     NewObject->mass_center_(2);
-
-    // VectorEigen normal_vector_unitary;
-    // normal_vector_unitary << sphere_center(0) -
-    //                              initial_camera_position_vector(0),
-    //     sphere_center(1) - initial_camera_position_vector(1),
-    //     sphere_center(2) - initial_camera_position_vector(2);
-
-    // normal_vector_unitary = normal_vector_unitary.normalized();
-
-    // VectorEigen U_vector; // 2nd basis vector
-    // U_vector << float(1.0),
-    //     float(0.0), //(1.0)
-    //     float((-normal_vector_unitary(0)) /
-    //           normal_vector_unitary(
-    //               2)); //(-normal_vector_unitary(0) -
-    //               normal_vector_unitary(1))
-    //                    /// normal_vector_unitary(2)
-    // U_vector = U_vector.normalized();
-
-    // VectorEigen V_vector; // 3rd basis vector
-    // V_vector = (normal_vector_unitary.cross(U_vector)).normalized();
-
-    // VectorEigen
-    //     W_vector; // Comprobation vector, it must be =
-    //     normal_vector_unitary
-    // W_vector = (U_vector.cross(V_vector)).normalized();
-
-    // Eigen::Matrix<float, 3, 3> R_matrix; // Rwc (camera to world)
-    // R_matrix << U_vector, V_vector, W_vector;
-
-    // Eigen::Matrix<float, 3, 4> Rt_matrix; //
-    // Rt_matrix << R_matrix, initial_camera_position_vector;
-
-    // Eigen::Affine3f t_objetivo_xy_fijos;
-    // for (int iAffine = 0; iAffine < 3; iAffine++) {
-    //   for (int jAffine = 0; jAffine < 4; jAffine++) {
-    //     t_objetivo_xy_fijos(iAffine, jAffine) =
-    //         static_cast<float>(Rt_matrix(iAffine, jAffine));
-    //   }
-    // }
-
-    // viewer->addCoordinateSystem(0.1, t_objetivo_xy_fijos,
-    //                             "ref_objetivo"); // camera visualization
-    // // NewObject->optimal_position_ = t_objetivo;
 
     // // visualization of camera and errors on viewer
     // viewer->addPointCloudNormals<PointNTSuperVoxel>(
