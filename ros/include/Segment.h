@@ -206,7 +206,7 @@ public:
 
 private:
   // visualization parameters
-  float cubeSize = 0.004;
+  float cubeSize = 0.008;
   bool visualize_main_inertia_axes = false;
   bool visualize_rgba_pointcloud = true;
   bool show_normals = true;

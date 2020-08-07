@@ -18,8 +18,8 @@ Camera.height: 480
 
 #VCCS segmentation parameters
 
-VoxelResolution: 0.03 #Rvoxel 0.01 should do for most scenarios
-SeedResolution: 0.06 #Rseed 0.03 should do for most scenarios
+VoxelResolution: 0.02 #Rvoxel 0.01 should do for most scenarios
+SeedResolution: 0.04 #Rseed 0.03 should do for most scenarios
 
 ColorImportance: 1.0
 SpatialImportance: 0.4

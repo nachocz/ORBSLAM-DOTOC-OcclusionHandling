@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
 
   node.viewer = newViewer;
   // node.viewer->setBackgroundColor(0.0, 0.0, 0.0);
-  node.viewer->setBackgroundColor(0.5, 0.5, 0.5);
-  // node.viewer->setBackgroundColor(1.0, 1.0, 1.0);
+  //node.viewer->setBackgroundColor(0.5, 0.5, 0.5);
+   node.viewer->setBackgroundColor(1.0, 1.0, 1.0);
 
   ros::spin();
 
@@ -1337,7 +1337,7 @@ void RGBDNode::computeOptimalCameraLocation(
         if (number_of_iterations == 1) {
           std::ostringstream cube_number;
           cube_number << "cube_number_" << i;
-          float cubeSize = 0.004;
+          float cubeSize = 0.002;
           viewer->addCube(plane_point(0) - cubeSize, plane_point(0) + cubeSize,
                           plane_point(1) - cubeSize, plane_point(1) + cubeSize,
                           plane_point(2) - cubeSize, plane_point(2) + cubeSize,
@@ -1372,7 +1372,7 @@ void RGBDNode::computeOptimalCameraLocation(
         if (number_of_iterations == 1) {
           std::ostringstream cube_number;
           cube_number << "cube_number_occlusor_" << i;
-          float cubeSize = 0.004;
+          float cubeSize = 0.001;
           viewer->addCube(plane_point(0) - cubeSize, plane_point(0) + cubeSize,
                           plane_point(1) - cubeSize, plane_point(1) + cubeSize,
                           plane_point(2) - cubeSize, plane_point(2) + cubeSize,
